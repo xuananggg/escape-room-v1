@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SUBJECT 07 — Three.js Lab Escape</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-family:'Segoe UI', system-ui, sans-serif; }
+  #app { position:fixed; inset:0; }
+  canvas { display:block; }
+  #crosshair { position:fixed; left:50%; top:50%; width:8px; height:8px; margin:-4px 0 0 -4px;
+    border-radius:50%; background:rgba(255,255,255,.85); box-shadow:0 0 6px rgba(0,0,0,.8);
+    pointer-events:none; z-index:20; transition:transform .12s, background .12s; }
+  #crosshair.active { transform:scale(1.8); background:#4ae3ff; }
+  #prompt { position:fixed; left:50%; top:58%; transform:translateX(-50%); z-index:20;
+    background:rgba(10,12,20,.82); border:1px solid rgba(74,227,255,.45); color:#fff;
+    padding:8px 16px; border-radius:10px; font-size:14px; display:none; pointer-events:none;
+    backdrop-filter:blur(6px); white-space:nowrap; }
+  #prompt b { color:#4ae3ff; }
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:15; }
+  #topbar { position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between;
+    align-items:flex-start; padding:14px 16px; }
+  .pill { background:rgba(10,12,20,.75); border:1px solid rgba(255,255,255,.14); color:#e8eaf0;
+    border-radius:12px; padding:8px 14px; font-size:13px; backdrop-filter:blur(8px); }
+  #timer { font-variant-numeric:tabular-nums; font-weight:700; font-size:15px; color:#4ae3ff; }
+  #objectives { max-width:340px; line-height:1.5; }
+  #objectives h4 { font-size:11px; letter-spacing:.12em; color:#4ae3ff; margin-bottom:6px; }
+  #objectives div { font-size:13px; opacity:.9; }
+  #objectives div.done { text-decoration:line-through; opacity:.55; color:#7ee2a8; }
+  #inventory { position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+    display:flex; gap:8px; pointer-events:none; }
+  .slot { width:72px; height:64px; border-radius:12px; background:rgba(15,18,30,.8);
+    border:1px solid rgba(255,255,255,.15); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; font-size:22px; color:#fff; }
+  .slot small { font-size:9px; margin-top:2px; color:#aaa; text-align:center; line-height:1.1; }
+  .slot.has { border-color:#4ae3ff; background:rgba(8,38,48,.85); box-shadow:0 0 14px rgba(74,227,255,.25); }
+  #toast { position:fixed; bottom:96px; left:50%; transform:translateX(-50%); z-index:30;
+    background:#171c2e; color:#fff; border:1px solid rgba(255,255,255,.15);
+    padding:10px 18px; border-radius:10px; font-size:14px; display:none; max-width:90vw; text-align:center; }
+  .overlay { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at center, rgba(20,22,40,.92), rgba(5,6,12,.97));
+    backdrop-filter:blur(6px); padding:20px; }
+  .card { max-width:640px; width:100%; background:#121626; border:1px solid #2a3355;
+    border-radius:18px; padding:32px; color:#eef1ff; box-shadow:0 20px 80px rgba(0,0,0,.6);
+    max-height:92vh; overflow-y:auto; }
+  .card h1 { font-size:36px; letter-spacing:.02em; margin-bottom:6px; }
+  .card h1 span { color:#4ae3ff; }
+  .card p { color:#aab0c8; font-size:14px; line-height:1.6; margin:10px 0; }
+  .card ul { margin:12px 0 12px 18px; color:#c9cee6; font-size:13.5px; line-height:1.7; }
+  .card code { background:#1e2540; padding:2px 7px; border-radius:6px; color:#4ae3ff; font-size:13px; }
+  .btn { pointer-events:auto; cursor:pointer; border:none; border-radius:12px; padding:13px 26px;
+    font-size:15px; font-weight:800; letter-spacing:.02em; background:#4ae3ff; color:#06121a;
+    margin-top:16px; width:100%; transition:transform .1s, filter .15s; }
+  .btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
+  .btn.ghost { background:transparent; border:1px solid #394160; color:#cdd3ea; margin-top:10px; }
+  .hidden { display:none !important; }
+  .story { background:#0d1226; border-left:3px solid #4ae3ff; padding:12px 14px; border-radius:0 10px 10px 0;
+    font-size:13.5px; line-height:1.65; color:#d6dbee; margin:12px 0; font-style:italic; }
+  .story b { color:#4ae3ff; font-style:normal; }
+  #chapter { position:fixed; top:22%; left:50%; transform:translateX(-50%); z-index:40; text-align:center;
+    pointer-events:none; display:none; }
+  #chapter h2 { font-size:32px; letter-spacing:.22em; color:#fff; text-shadow:0 4px 30px #000; }
+  #chapter p { color:#4ae3ff; letter-spacing:.15em; font-size:13px; margin-top:6px; }
+  #flash { position:fixed; inset:0; z-index:45; background:#2bff88; opacity:0; pointer-events:none; transition:opacity .8s; }
+  #modal { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.55); padding:18px; }
+  #modal.open { display:flex; }
+  #modalCard { width:100%; max-width:460px; background:#f5edd6; color:#2b2113; border-radius:14px;
+    padding:24px; box-shadow:0 20px 60px rgba(0,0,0,.6); position:relative; max-height:88vh; overflow-y:auto; }
+  #modalCard.dark { background:#141a30; color:#eef1ff; border:1px solid #2c3760; }
+  #modalCard.wide { max-width:640px; }
+  #modalCard h3 { margin-bottom:10px; font-size:18px; }
+  #modalCard p { font-size:14px; line-height:1.6; white-space:pre-wrap; }
+  #modalClose { position:absolute; top:10px; right:12px; background:none; border:none;
+    font-size:20px; cursor:pointer; color:inherit; }
+  #keypadDisplay { font-size:32px; letter-spacing:.4em; text-align:center; background:#0a0e20;
+    color:#4ae3ff; border-radius:10px; padding:12px; margin:12px 0; font-variant-numeric:tabular-nums; }
+  #keypadGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  #keypadGrid button { padding:14px; font-size:18px; font-weight:800; border-radius:10px;
+    border:1px solid #2e3a68; background:#1f2748; color:#fff; cursor:pointer; }
+  #keypadGrid button:hover { background:#2b3763; }
+  #keypadGrid button.fn { background:#0a2e38; border-color:#1f6d84; color:#4ae3ff; }
+  #diagTable table { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0; }
+  #diagTable th, #diagTable td { border:1px solid #b9a86a; padding:6px 8px; text-align:center; }
+  #diagTable th { background:#e4d5a4; }
+  #diagBtns { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:10px; }
+  #diagBtns button { padding:12px; font-size:15px; font-weight:800; border-radius:10px; cursor:pointer;
+    border:1px solid #6b5d1f; background:#2a2410; color:#ffd54a; }
+  #diagBtns button:hover { filter:brightness(1.25); }
+  #riddleQ { font-size:16px; font-weight:700; margin:8px 0 12px; }
+  #riddleA { width:100%; padding:12px; font-size:16px; border-radius:10px; border:2px solid #6b5d1f; }
+  #riddleGo { margin-top:10px; width:100%; padding:12px; font-size:15px; font-weight:800; border-radius:10px;
+    border:none; background:#ffd54a; color:#111; cursor:pointer; }
+  #riddleHintBtn { margin-top:8px; width:100%; padding:9px; font-size:13px; font-weight:700; border-radius:10px;
+    border:1px solid #6b5d1f; background:transparent; color:#8a7520; cursor:pointer; }
+  #riddleHint { margin-top:8px; font-size:13px; color:#5a4a10; background:#fdf3d0; border-radius:8px; padding:8px 10px; }
+  #ptGrid { display:grid; grid-template-columns:repeat(18,1fr); gap:3px; margin-top:8px; }
+  #ptGrid .cell { border-radius:4px; background:#dfe7ee; border:1px solid #9fb2c2; text-align:center; padding:2px 0; }
+  #ptGrid .cell small { display:block; font-size:7px; color:#47606f; }
+  #ptGrid .cell b { font-size:9px; color:#0b2b36; }
+  #ptGrid .cell.tiny b { font-size:6px; }
+  #ptGrid .cell.tiny small { font-size:6px; }
+  #ptGrid .gap { visibility:hidden; }
+  kbd { background:#222947; border:1px solid #3a4672; border-bottom-width:3px; border-radius:6px; padding:1px 7px; font-size:12px; }
+  #langRow { display:flex; gap:8px; margin-top:16px; }
+  #langRow button { flex:1; padding:10px; font-size:14px; font-weight:800; border-radius:10px; cursor:pointer;
+    background:transparent; border:1px solid #394160; color:#cdd3ea; }
+  #langRow button.on { background:#4ae3ff; border-color:#4ae3ff; color:#06121a; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="hud">
+  <div id="topbar">
+    <div class="pill" id="objectives">
+      <h4 id="objH">◉ TRIAL PROTOCOL</h4>
+      <div id="obj1">Step 1: Identify the virus</div>
+      <div id="obj2">Step 2: Find and consume the cure</div>
+      <div id="obj3">Step 3: Find the access card and escape</div>
+    </div>
+    <div class="pill">⏱ <span id="timer">00:00</span><br><span id="hudHint" style="font-size:11px;opacity:.7">click objects • <kbd>E</kbd> interact</span></div>
+  </div>
+  <div id="inventory"></div>
+</div>
+<div id="crosshair"></div>
+<div id="prompt"></div>
+<div id="toast"></div>
+<div id="flash"></div>
+<div id="chapter"><h2 id="chapterTitle"></h2><p id="chapterSub"></p></div>
+
+<div id="startScreen" class="overlay">
+  <div class="card">
+    <h1>SUBJECT <span>07</span></h1>
+    <p id="startSub" style="color:#4ae3ff;letter-spacing:.15em;font-size:11px;font-weight:800">— HUMAN TRIAL · SECTOR 7 —</p>
+    <div class="story" id="startStory">You wake on cold tile, head buzzing, a plastic wristband on your arm: <b>SUBJECT 07</b>.<br><br>You have been infected with an unknown virus. Somewhere in this lab is the cure. Find it, consume it — and escape.</div>
+    <div id="langRow"><button id="langEN" class="on">English</button><button id="langZH">中文</button></div>
+    <ul>
+      <li id="ctl1">🖱️ Click <b>START</b> → mouse looks around (pointer lock)</li>
+      <li id="ctl2"><code>W A S D</code> to walk • <code>E</code> / click to interact</li>
+    </ul>
+    <button class="btn" id="startBtn">▶ &nbsp;WAKE UP, SUBJECT 07</button>
+  </div>
+</div>
+
+<div id="pauseScreen" class="overlay hidden">
+  <div class="card" style="text-align:center">
+    <h1 id="pauseH">PAUSED</h1>
+    <p id="pauseP">Trial suspended. The virus waits for no one, but we'll wait.</p>
+    <button class="btn" id="resumeBtn">RESUME</button>
+    <button class="btn ghost" id="restartBtn2">Restart trial</button>
+  </div>
+</div>
+
+<div id="winScreen" class="overlay hidden">
+  <div class="card" style="text-align:center;border-color:#2f7a4d">
+    <h1 id="winH">CURED <span style="color:#7ee2a8">&amp; FREE!</span> 🎉</h1>
+    <p id="winStats">Time: 00:00</p>
+    <div class="story" id="epilogue" style="text-align:left"></div>
+    <p id="journalScore" style="color:#4ae3ff;font-size:13px"></p>
+    <button class="btn" id="restartBtn">VOLUNTEER AGAIN</button>
+  </div>
+</div>
+
+<div id="modal">
+  <div id="modalCard">
+    <button id="modalClose">✕</button>
+    <h3 id="modalTitle">Note</h3>
+    <p id="modalText"></p>
+    <div id="keypadUI" class="hidden">
+      <div id="keypadDisplay">____</div>
+      <div id="keypadGrid"></div>
+    </div>
+    <div id="diagUI" class="hidden">
+      <div id="diagTable"></div>
+      <div id="diagBtns"></div>
+    </div>
+    <div id="riddleUI" class="hidden">
+      <p id="riddleQ"></p>
+      <input id="riddleA" placeholder="Type your answer…" autocomplete="off" />
+      <button id="riddleGo">UNLOCK LOCKER →</button>
+      <button id="riddleHintBtn">💡 Need a hint?</button>
+      <p id="riddleHint"></p>
+    </div>
+    <div id="ptUI" class="hidden"><div id="ptGrid"></div></div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+/* ================= TRIAL DATA ================= */
+const EL=[
+[1,'H',1,1],[2,'He',1,18],
+[3,'Li',2,1],[4,'Be',2,2],[5,'B',2,13],[6,'C',2,14],[7,'N',2,15],[8,'O',2,16],[9,'F',2,17],[10,'Ne',2,18],
+[11,'Na',3,1],[12,'Mg',3,2],[13,'Al',3,13],[14,'Si',3,14],[15,'P',3,15],[16,'S',3,16],[17,'Cl',3,17],[18,'Ar',3,18],
+[19,'K',4,1],[20,'Ca',4,2],[21,'Sc',4,3],[22,'Ti',4,4],[23,'V',4,5],[24,'Cr',4,6],[25,'Mn',4,7],[26,'Fe',4,8],[27,'Co',4,9],[28,'Ni',4,10],[29,'Cu',4,11],[30,'Zn',4,12],[31,'Ga',4,13],[32,'Ge',4,14],[33,'As',4,15],[34,'Se',4,16],[35,'Br',4,17],[36,'Kr',4,18],
+[37,'Rb',5,1],[38,'Sr',5,2],[39,'Y',5,3],[40,'Zr',5,4],[41,'Nb',5,5],[42,'Mo',5,6],[43,'Tc',5,7],[44,'Ru',5,8],[45,'Rh',5,9],[46,'Pd',5,10],[47,'Ag',5,11],[48,'Cd',5,12],[49,'In',5,13],[50,'Sn',5,14],[51,'Sb',5,15],[52,'Te',5,16],[53,'I',5,17],[54,'Xe',5,18],
+[55,'Cs',6,1],[56,'Ba',6,2],['57-71','La-Lu',6,3],[72,'Hf',6,4],[73,'Ta',6,5],[74,'W',6,6],[75,'Re',6,7],[76,'Os',6,8],[77,'Ir',6,9],[78,'Pt',6,10],[79,'Au',6,11],[80,'Hg',6,12],[81,'Tl',6,13],[82,'Pb',6,14],[83,'Bi',6,15],[84,'Po',6,16],[85,'At',6,17],[86,'Rn',6,18],
+[87,'Fr',7,1],[88,'Ra',7,2],['89-103','Ac-Lr',7,3],[104,'Rf',7,4],[105,'Db',7,5],[106,'Sg',7,6],[107,'Bh',7,7],[108,'Hs',7,8],[109,'Mt',7,9],[110,'Ds',7,10],[111,'Rg',7,11],[112,'Cn',7,12],[113,'Nh',7,13],[114,'Fl',7,14],[115,'Mc',7,15],[116,'Lv',7,16],[117,'Ts',7,17],[118,'Og',7,18],
+[57,'La',8,4],[58,'Ce',8,5],[59,'Pr',8,6],[60,'Nd',8,7],[61,'Pm',8,8],[62,'Sm',8,9],[63,'Eu',8,10],[64,'Gd',8,11],[65,'Tb',8,12],[66,'Dy',8,13],[67,'Ho',8,14],[68,'Er',8,15],[69,'Tm',8,16],[70,'Yb',8,17],[71,'Lu',8,18],
+[89,'Ac',9,4],[90,'Th',9,5],[91,'Pa',9,6],[92,'U',9,7],[93,'Np',9,8],[94,'Pu',9,9],[95,'Am',9,10],[96,'Cm',9,11],[97,'Bk',9,12],[98,'Cf',9,13],[99,'Es',9,14],[100,'Fm',9,15],[101,'Md',9,16],[102,'No',9,17],[103,'Lr',9,18]];
+const EL_NUM={}; EL.forEach(([n,s])=>{ if(typeof n==='number')EL_NUM[s]=n; });
+const VIRUS_EL={NaCO:['Na','C','O'],FeNa:['Fe','Na'],CONe:['C','O','Ne'],HeLiCo:['He','Li','Co'],MgAr:['Mg','Ar'],HCoN:['H','Co','N'],NiFe:['Ni','Fe'],KNe:['K','Ne']};
+const VIRUS_COLOR={NaCO:0x22d3ee,FeNa:0xe07b39,CONe:0x34d399,HeLiCo:0xa78bfa,MgAr:0xf472b6,HCoN:0xeab308,NiFe:0x94a3b8,KNe:0xef4444};
+const virusCode=v=>VIRUS_EL[v].map(s=>EL_NUM[s]).join('');
+const SUBJECTS=[
+  {id:'S-02',h:158,w:52,virus:'CONe'},
+  {id:'S-03',h:165,w:58,virus:'FeNa'},
+  {id:'S-05',h:172,w:66,virus:'HeLiCo'},
+  {id:'S-06',h:175,w:70,virus:'NaCO'},
+  {id:'S-09',h:178,w:74,virus:'MgAr'},
+  {id:'S-11',h:181,w:77,virus:'HCoN'},
+  {id:'S-12',h:186,w:82,virus:'NiFe'},
+  {id:'S-14',h:190,w:88,virus:'KNe'},
+];
+const playerIdx=Math.floor(Math.random()*SUBJECTS.length);
+const ME=SUBJECTS[playerIdx];
+console.log('%cSUBJECT 07 is '+ME.id+' '+ME.h+'cm '+ME.w+'kg virus '+ME.virus+' code '+virusCode(ME.virus), 'color:cyan');
+const RIDDLES=[
+  {who:'DR. CHEN',q:{en:'My badge code is 7 × 8. What is it? (number only)',zh:'我的徽章密码是 7 × 8，是多少？（只填数字）'},h:{en:'Hint: 7 × 8 is the same as 7 × 4 × 2. Or count up in sevens.',zh:'提示：7×8 也就是 7×4×2，或者7个7个地往上数。'},a:['56']},
+  {who:'DR. OKAFOR',q:{en:'What is the chemical formula for water?',zh:'水的化学式是什么？'},h:{en:'Hint: two hydrogens and one oxygen — the most famous molecule on Earth.',zh:'提示：两个氢、一个氧——地球上最著名的分子。'},a:['h2o']},
+  {who:'DR. MARSH',q:{en:'What has keys but opens no locks?',zh:'什么瓜不能吃？'},h:{en:'Hint: you are probably tapping on it right now.',zh:'提示：骂人笨的时候会说“你真是个__”。(谐音梗)'},a:['keyboard','a keyboard','傻瓜']},
+  {who:'DR. REYES',q:{en:'Quick vitals check: 15 + 27 = ? (number only)',zh:'什么鸡没有翅膀？'},h:{en:'Hint: 20 + 30 is 50… now adjust for what you added.',zh:'提示：它住在田里，呱呱叫——“鸡”只是谐音。(谐音梗)'},a:['42','田鸡']},
+  {who:'DR. VOSS',q:{en:'Which planet is called the Red Planet?',zh:'哪颗行星被称为红色星球？'},h:{en:'Hint: the fourth planet from the Sun, named after the god of war.',zh:'提示：离太阳第四近的行星，以战神命名。'},a:['mars','火星']},
+  {who:'DR. IBE',q:{en:'At how many °C does water freeze? (number only)',zh:'水在多少摄氏度结冰？（只填数字）'},h:{en:'Hint: the number where the Celsius scale begins.',zh:'提示：摄氏温标开始的那个数字。'},a:['0','zero','零']},
+  {who:'DR. LINDQVIST',q:{en:'Dosage math: 9 × 6 − 4 = ? (number only)',zh:'剂量计算：9 × 6 − 4 =？（只填数字）'},h:{en:'Hint: multiply first, then subtract.',zh:'提示：先乘后减。'},a:['50']},
+  {who:'DR. AMARI',q:{en:'What has a face and two hands but no arms or legs?',zh:'什么马不能骑？'},h:{en:'Hint: it hangs on the lab wall and goes tick-tock.',zh:'提示：它住在海里，是爸爸生宝宝的。(谐音梗)'},a:['clock','a clock','海马']},
+];
+const cardLocker=Math.floor(Math.random()*8);
+console.log('%ccard locker: '+cardLocker, 'color:gold');
+
+const state={ playing:false, won:false, locked:false,
+  measured:false, diagnosed:null, fridgeOpen:false, cured:false, hasCard:false, doorOpen:false,
+  startTime:0, elapsed:0, keys:{}, yaw:0, pitch:0 };
+const $=id=>document.getElementById(id);
+const toastEl=$('toast'); let toastT=null;
+function toast(msg,ms=2600){ toastEl.textContent=msg; toastEl.style.display='block';
+  clearTimeout(toastT); toastT=setTimeout(()=>toastEl.style.display='none',ms); }
+function beep(f=600,d=.08,type='sine',g=.12){
+  try{ const ctx=beep.ctx||=(new (window.AudioContext||window.webkitAudioContext)());
+    const o=ctx.createOscillator(),gn=ctx.createGain(); o.type=type;o.frequency.value=f;
+    gn.gain.value=g; o.connect(gn);gn.connect(ctx.destination); o.start();
+    gn.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+d); o.stop(ctx.currentTime+d);
+  }catch(e){}
+}
+function objective(id){ $(id).classList.add('done'); }
+function chapter(title,sub=''){ const c=$('chapter');
+  $('chapterTitle').textContent=title; $('chapterSub').textContent=sub;
+  c.style.display='block'; c.style.opacity='1';
+  setTimeout(()=>{ c.style.transition='opacity 1.2s'; c.style.opacity='0';
+    setTimeout(()=>c.style.display='none',1300); },2200); }
+function flashGreen(){ const f=$('flash'); f.style.transition='none'; f.style.opacity='.55';
+  requestAnimationFrame(()=>{ f.style.transition='opacity 1.2s'; f.style.opacity='0'; }); }
+
+/* ================= I18N (English / 中文) ================= */
+let LANG='en';
+const I18N={
+en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
+  startStory:'You wake on cold tile, head buzzing, a plastic wristband on your arm: <b>SUBJECT 07</b>.<br><br>You have been infected with an unknown virus. Somewhere in this lab is the cure. Find it, consume it — and escape.',
+  ctl1:'🖱️ Click <b>START</b> → mouse looks around (pointer lock)',
+  ctl2:'<code>W A S D</code> to walk • <code>E</code> / click to interact',
+  startBtn:'▶ &nbsp;WAKE UP, SUBJECT 07',
+  objH:'◉ TRIAL PROTOCOL', obj1:'Step 1: Identify the virus', obj2:'Step 2: Find and consume the cure', obj3:'Step 3: Find the access card and escape',
+  hudHint:'click objects • <kbd>E</kbd> interact',
+  pauseH:'PAUSED', pauseP:"Trial suspended. The virus waits for no one, but we'll wait.",
+  resumeBtn:'RESUME', restartBtn2:'Restart trial', restartBtn:'VOLUNTEER AGAIN',
+  winH:'CURED <span style="color:#7ee2a8">&amp; FREE!</span> 🎉',
+  doorOpen:'The airlock is already open — go!',
+  doorNeedCure:'🚫 DECONTAMINATION DENIED — viral load detected.',
+  doorNeedCard:'🔒 Card reader blinks red. Access denied.',
+  ptTitle:'🧪 Periodic table (tap ✕ to look away)', ptPosterTitle:'PERIODIC TABLE OF ELEMENTS',
+  clipCanvasTitle:'TRIAL ROSTER', clipDiagTitle:'📋 Trial roster — name YOUR virus',
+  thSub:'Subject', thH:'Height', thW:'Weight', thStrain:'Strain', cm:'cm', kg:'kg',
+  notMeasured:'not measured yet — use the station first!', readingIs:'Your stadiometer reading:',
+  needMeasure:'📏 Measure yourself at the station FIRST!',
+  wrongStrainV:v=>'❌ Your numbers don’t match strain '+v+'. Check the roster again!',
+  diagnosedToast:v=>'🧬 Diagnosed: strain '+v+'.',
+  diagChapterSub:v=>'STRAIN '+v,
+  measureTitle:'📏 Stadiometer + scale',
+  measureText:(h,w)=>'The arm slides down. The scale beeps.\n\nYOUR READING:\n  Height  '+h+' cm\n  Weight  '+w+' kg',
+  measureToast:'📏 Reading logged.',
+  screenIdle:'STEP ON\n? ?', fridgeSign:'CURE FRIDGE',
+  fridgeOpenCured:'Fridge open.',
+  fridgeOpenNeed:d=>'Fridge open.',
+  padTitle:'🔐 Cure-fridge keypad — 4 digits',
+  padOk:v=>'✅ FRIDGE UNLOCKED!',
+  padWrong:'❌ Wrong code.',
+  vialLabel:v=>'cure vial '+v+' — drink it?',
+  drinkTitle:v=>'💉 You drink the '+v+' cure…',
+  drinkText:'Cool mint floods your veins. The tremor stops. Your vision clears.\n\n“Viral load: UNDETECTABLE.”\n\nYou are CURED.',
+  alreadyCured:'Already cured. One dose is enough!',
+  wrongVial:(me,d)=>'🤢 Wrong strain! That cure does nothing for '+me+'.',
+  lockerLabel:who=>'locker — '+who,
+  lockerOpenCard:who=>'🔓 '+who+'’s locker swings open… something GOLD glints inside!',
+  lockerJunk:(who,j)=>'🔓 '+who+'’s locker: '+j,
+  lockerTakeCard:'Take the ACCESS CARD inside!',
+  lockerEmptyCard:'Empty locker. The card is in your pocket — GO!',
+  lockerJunkOnly:(who,j)=>'Locker '+who+': just '+j,
+  cardLabel:'SCIENTIST access card — take it!',
+  cardToast:'🪪 ACCESS CARD acquired!',
+  cardChapterSub:'ACCESS GRANTED',
+  riddleTitle:who=>'🔒 '+who+'’s locker', inputPh:'Type your answer…', riddleHintBtn:'💡 Need a hint?',
+  riddleWrong:'❌ Not quite — try again! (Math, joke or science…)',
+  chTrialSub:'THE TRIAL BEGINS',
+  startToast1:'🧬 Wristband: SUBJECT 07. Step 1: take your HEIGHT + WEIGHT by the table…',
+  startToast2:'📏 The stadiometer + scale stand NEXT TO the table.',
+  step1done:'STEP 1 COMPLETE', step2done:'STEP 2 COMPLETE', step2sub:'VIRUS NEUTRALIZED', step3done:'STEP 3 COMPLETE',
+  invReading:'reading', invVirus:'virus', invCure:'cure', invCard:'card', curedTag:'CURED',
+  winStats:(t,v,c)=>'Discharged in '+t+' • Strain '+v+' • Fridge code '+c,
+  winEpi:(v,h,w)=>'The airlock sighs open. Your bloodwork glows green: <b>viral load UNDETECTABLE</b>, strain <b>'+v+'</b> neutralized.<br><br>Over the speaker, a voice almost smiles: <i>“Subject 07… you measured, you decoded, you reasoned. '+h+' centimeters, '+w+' kilos of pure scientific method. You’re free — and cured.”</i><br><br><b>★ Trial complete: diagnosed '+v+', drank the cure, swiped out. ★</b>',
+  winScore:(id,h,w,v,c,who)=>'🧬 '+id+' • '+h+'cm/'+w+'kg • '+v+' → '+c+' • card: '+who,
+  winToast:'🚪 CURED + CARD — the airlock opens. Freedom!',
+  promptKey:'[E / Click]', doorLbl:'the card reader — swipe to escape', doorLbl2:'the airlock', airlockSign:'AIRLOCK',
+  ptLbl:'the periodic table — study it', clipLbl:'the trial clipboard — diagnose',
+  measureLbl:'height + weight station — measure yourself', fridgeLbl:'the cure fridge — locked',
+  fridgePadLbl:'the fridge keypad',
+  junk:['a granola bar. Not the card.','spare nitrile gloves. Not the card.','a “WORLD’S OKAYEST SCIENTIST” mug. Not the card.','a paperclip collection. Not the card.','spare safety goggles. Not the card.','cold coffee. Definitely not the card.','a half-finished crossword. Not the card.'],
+},
+zh:{ startSub:'— 人体试验 · 第7区 —',
+  startStory:'你在冰冷的地砖上醒来，头昏脑涨，手腕上戴着塑料手环：<b>07号受试者</b>。<br><br>你感染了一种未知病毒。实验室的某处藏着解药。找到它，服下它——然后逃出去。',
+  ctl1:'🖱️ 点击 <b>开始</b> → 鼠标环视（指针锁定）',
+  ctl2:'<code>W A S D</code> 行走 • <code>E</code> / 点击 进行互动',
+  startBtn:'▶ &nbsp;醒来吧，07号受试者',
+  objH:'◉ 试验流程', obj1:'第一步：确认病毒', obj2:'第二步：找到解药并服下', obj3:'第三步：找到门禁卡并逃离',
+  hudHint:'点击物品 • <kbd>E</kbd> 互动',
+  pauseH:'已暂停', pauseP:'试验暂停。病毒不会等人，但我们会等你。',
+  resumeBtn:'继续', restartBtn2:'重新开始', restartBtn:'再次参加试验',
+  winH:'已治愈<span style="color:#7ee2a8">并自由！</span> 🎉',
+  doorOpen:'气闸已经开了——快走！',
+  doorNeedCure:'🚫 消杀拒绝通行——检测到病毒载量。',
+  doorNeedCard:'🔒 读卡器闪着红灯，拒绝通行。',
+  ptTitle:'🧪 元素周期表（点 ✕ 移开视线）', ptPosterTitle:'元素周期表',
+  clipCanvasTitle:'受试者名单', clipDiagTitle:'📋 受试者名单——确认你的病毒',
+  thSub:'受试者', thH:'身高', thW:'体重', thStrain:'病毒株', cm:'厘米', kg:'公斤',
+  notMeasured:'尚未测量——先去测量站！', readingIs:'你的测量结果：',
+  needMeasure:'📏 请先去测量站测量身高体重！',
+  wrongStrainV:v=>'❌ 你的数据与病毒株 '+v+' 不符。再核对一下名单！',
+  diagnosedToast:v=>'🧬 确诊：病毒株'+v+'。',
+  diagChapterSub:v=>'病毒株 '+v,
+  measureTitle:'📏 身高体重测量仪',
+  measureText:(h,w)=>'横臂滑下。体重秤发出哔声。\n\n你的读数：\n  身高  '+h+' 厘米\n  体重  '+w+' 公斤',
+  measureToast:'📏 已记录读数。',
+  screenIdle:'请站上\n? ?', fridgeSign:'解药冷藏柜',
+  fridgeOpenCured:'冷藏柜开着。',
+  fridgeOpenNeed:d=>'冷藏柜开着。',
+  padTitle:'🔐 冷藏柜密码键盘 —— 4位数字',
+  padOk:v=>'✅ 冷藏柜已解锁！',
+  padWrong:'❌ 密码错误。',
+  vialLabel:v=>'解药瓶 '+v+' —— 喝下？',
+  drinkTitle:v=>'💉 你喝下了 '+v+' 解药……',
+  drinkText:'清凉的薄荷味流遍血管。颤抖停止了。视野清晰了。\n\n“病毒载量：未检出。”\n\n你被治愈了。',
+  alreadyCured:'已经治愈了，一剂就够！',
+  wrongVial:(me,d)=>'🤢 拿错了！这支解药对 '+me+' 无效。',
+  lockerLabel:who=>'储物柜 —— '+who,
+  lockerOpenCard:who=>'🔓 '+who+' 的柜子打开了……里面有金色的东西在闪光！',
+  lockerJunk:(who,j)=>'🔓 '+who+' 的柜子：'+j,
+  lockerTakeCard:'拿走里面的门禁卡！',
+  lockerEmptyCard:'柜子空了。卡在你口袋里——快走！',
+  lockerJunkOnly:(who,j)=>who+' 的柜子：只有'+j,
+  cardLabel:'科学家门禁卡——拿走！',
+  cardToast:'🪪 获得门禁卡！',
+  cardChapterSub:'已获得通行权限',
+  riddleTitle:who=>'🔒 '+who+' 的储物柜', inputPh:'输入答案……', riddleHintBtn:'💡 需要提示？',
+  riddleWrong:'❌ 不太对——再试试！（数学、笑话或科学……）',
+  chTrialSub:'试验开始',
+  startToast1:'🧬 手环：07号受试者。第一步：去桌旁测量身高体重……',
+  startToast2:'📏 身高体重仪就在桌子旁边。',
+  step1done:'第一步完成', step2done:'第二步完成', step2sub:'病毒已清除', step3done:'第三步完成',
+  invReading:'体征', invVirus:'病毒', invCure:'解药', invCard:'门禁卡', curedTag:'已治愈',
+  winStats:(t,v,c)=>'出院用时 '+t+' • 病毒株 '+v+' • 冷藏柜密码 '+c,
+  winEpi:(v,h,w)=>'气闸缓缓打开。你的血液检测一片绿色：<b>病毒载量未检出</b>，病毒株 <b>'+v+'</b> 已被清除。<br><br>广播里的声音带着笑意：<i>“07号……你测量、解码、推理。'+h+' 厘米、'+w+' 公斤的纯粹科学方法。你自由了——也被治愈了。”</i><br><br><b>★ 试验完成：确诊 '+v+'、服下解药、刷卡逃离。★</b>',
+  winScore:(id,h,w,v,c,who)=>'🧬 '+id+' • '+h+'厘米/'+w+'公斤 • '+v+' → '+c+' • 卡片：'+who,
+  winToast:'🚪 已治愈＋有卡——气闸开启。自由！',
+  promptKey:'[E / 点击]', doorLbl:'读卡器——刷卡逃离', doorLbl2:'气闸', airlockSign:'气闸',
+  ptLbl:'元素周期表——查看', clipLbl:'受试者名单——确诊',
+  measureLbl:'身高体重站——测量', fridgeLbl:'解药冷藏柜——已上锁',
+  fridgePadLbl:'冷藏柜密码键盘',
+  junk:['一块燕麦棒。不是卡。','备用丁腈手套。不是卡。','“世界最强科学家”马克杯。不是卡。','一堆回形针。不是卡。','备用护目镜。不是卡。','冷掉的咖啡。肯定不是卡。','没填完的填字游戏。不是卡。'],
+}};
+function T(k,...args){ const v=I18N[LANG][k]; return (typeof v==='function')?v(...args):v; }
+function setLang(l){ LANG=l;
+  $('langEN').classList.toggle('on',l==='en'); $('langZH').classList.toggle('on',l==='zh');
+  $('startSub').textContent=T('startSub'); $('startStory').innerHTML=T('startStory');
+  $('ctl1').innerHTML=T('ctl1'); $('ctl2').innerHTML=T('ctl2'); $('startBtn').innerHTML=T('startBtn');
+  $('objH').textContent=T('objH'); $('obj1').textContent=T('obj1');
+  $('obj2').textContent=T('obj2'); $('obj3').textContent=T('obj3');
+  $('hudHint').innerHTML=T('hudHint');
+  $('pauseH').textContent=T('pauseH'); $('pauseP').textContent=T('pauseP');
+  $('resumeBtn').textContent=T('resumeBtn'); $('restartBtn2').textContent=T('restartBtn2');
+  $('restartBtn').textContent=T('restartBtn'); $('winH').innerHTML=T('winH');
+  dynTex.forEach(r=>{ const g=r.c.getContext('2d'); g.clearRect(0,0,r.c.width,r.c.height);
+    r.draw(g,r.c.width,r.c.height); r.t.needsUpdate=true; });
+  if(!state.measured&&screenCtx){ screenCtx.fillStyle='#062b38'; screenCtx.fillRect(0,0,256,128);
+    screenCtx.fillStyle='#4ae3ff'; screenCtx.font='bold 26px sans-serif'; screenCtx.textAlign='center';
+    T('screenIdle').split('\n').forEach((ln,i)=>screenCtx.fillText(ln,128,52+i*34)); screenTex.needsUpdate=true; }
+  renderInv();
+}
+
+/* ================= THREE SETUP ================= */
+const app=$('app');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x060d14);
+scene.fog=new THREE.Fog(0x060d14,12,32);
+const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.05,60);
+camera.rotation.order='YXZ';
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.12;
+app.appendChild(renderer.domElement);
+/* image-based lighting: soft studio reflections on every metal/gloss surface */
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(renderer),.04).texture;
+scene.add(new THREE.AmbientLight(0x9fd8e8,.35));
+scene.add(new THREE.HemisphereLight(0xd8f6ff,0x2a3542,.55));
+const ceilLight=new THREE.PointLight(0xd8f6ff,30,24,1.6);
+ceilLight.position.set(0,3.0,0); ceilLight.castShadow=true;
+ceilLight.shadow.mapSize.set(2048,2048); scene.add(ceilLight);
+const fillLight=new THREE.PointLight(0xbfe6ff,12,24,1.6);
+fillLight.position.set(0,3.0,3.5); scene.add(fillLight);
+const lampLight=new THREE.PointLight(0x7ef0c8,0,4,2); scene.add(lampLight);
+const alarmLight=new THREE.PointLight(0xff3b5c,2,14,1.8); alarmLight.position.set(0,3.0,-5.2); scene.add(alarmLight);
+const flash=new THREE.SpotLight(0xffffff,6,9,.5,.45,1.2); scene.add(flash); scene.add(flash.target);
+const player={ pos:new THREE.Vector3(0,1.6,3.6), vel:new THREE.Vector3(), speed:3.2 };
+function applyCam(){ camera.position.copy(player.pos); camera.rotation.set(state.pitch,state.yaw,0); }
+
+/* ================= TEXTURES ================= */
+function canvasTex(w,h,draw){ const c=document.createElement('canvas'); c.width=w;c.height=h;
+  draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; }
+/* textures that must re-render on language switch */
+const dynTex=[];
+function dynCanvasTex(w,h,draw){ const c=document.createElement('canvas'); c.width=w;c.height=h;
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
+  dynTex.push({c,t,draw}); draw(c.getContext('2d'),w,h); return t; }
+$('langEN').onclick=()=>setLang('en');
+$('langZH').onclick=()=>setLang('zh');
+const floorTex=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#9aa7b4';g.fillRect(0,0,w,h);
+  g.fillStyle='#8b99a8'; for(let y=0;y<4;y++)for(let x=0;x<4;x++) if((x+y)%2) g.fillRect(x*64,y*64,64,64);
+  g.strokeStyle='rgba(20,40,55,.5)';g.lineWidth=3;
+  for(let i=0;i<=4;i++){ g.beginPath();g.moveTo(0,i*64);g.lineTo(w,i*64);g.stroke();
+    g.beginPath();g.moveTo(i*64,0);g.lineTo(i*64,h);g.stroke(); }
+  g.fillStyle='rgba(0,60,80,.12)'; for(let i=0;i<120;i++)g.fillRect(Math.random()*w,Math.random()*h,2,2); });
+floorTex.wrapS=floorTex.wrapT=THREE.RepeatWrapping; floorTex.repeat.set(6,6);
+const wallTex=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#dde7ee';g.fillRect(0,0,w,h);
+  g.fillStyle='#c4d3dd'; g.fillRect(0,0,w,10); g.fillRect(0,120,w,6);
+  g.fillStyle='rgba(30,90,110,.15)'; for(let i=0;i<120;i++)g.fillRect(Math.random()*w,Math.random()*h,2,2);
+  g.fillStyle='#0e7d96'; g.fillRect(0,h-26,w,10);
+  g.fillStyle='#ffd54a'; for(let x=8;x<w;x+=32) { g.save(); g.translate(x,h-22); g.rotate(.5); g.fillRect(0,0,14,5); g.restore(); } });
+wallTex.wrapS=wallTex.wrapT=THREE.RepeatWrapping; wallTex.repeat.set(6,1);
+
+/* ================= ROOM (12m lab hall) ================= */
+const ROOM={w:12,h:3.4,d:12};
+const matFloor=new THREE.MeshStandardMaterial({map:floorTex,roughness:.38,metalness:.22});
+const matWall=new THREE.MeshStandardMaterial({map:wallTex,roughness:.9});
+const matCeil=new THREE.MeshStandardMaterial({color:0xe8eef3});
+const matBench=new THREE.MeshStandardMaterial({color:0xdfe7ee,roughness:.4,metalness:.25});
+const matFrame=new THREE.MeshStandardMaterial({color:0x5a6b7a,roughness:.5,metalness:.4});
+const matMetal=new THREE.MeshStandardMaterial({color:0x9aa2b8,roughness:.35,metalness:.7});
+const matGold=new THREE.MeshStandardMaterial({color:0xffd54a,roughness:.25,metalness:.9,emissive:0x553d00,emissiveIntensity:.5});
+function box(w,h,d,mat,x,y,z,shadow=true){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  m.position.set(x,y,z); m.castShadow=shadow; m.receiveShadow=true; scene.add(m); return m; }
+{
+  const f=new THREE.Mesh(new THREE.PlaneGeometry(ROOM.w,ROOM.d),matFloor);
+  f.rotation.x=-Math.PI/2; f.receiveShadow=true; scene.add(f);
+  const c=new THREE.Mesh(new THREE.PlaneGeometry(ROOM.w,ROOM.d),matCeil);
+  c.rotation.x=Math.PI/2; c.position.y=ROOM.h; scene.add(c);
+  const mk=(w,h,x,y,z,ry)=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),matWall);
+    m.position.set(x,y,z); m.rotation.y=ry; m.receiveShadow=true; scene.add(m); };
+  mk(ROOM.w,ROOM.h, 0,ROOM.h/2,-ROOM.d/2, 0);
+  mk(ROOM.w,ROOM.h, 0,ROOM.h/2, ROOM.d/2, Math.PI);
+  mk(ROOM.d,ROOM.h,-ROOM.w/2,ROOM.h/2,0, Math.PI/2);
+  mk(ROOM.d,ROOM.h, ROOM.w/2,ROOM.h/2,0,-Math.PI/2);
+  box(ROOM.w,.08,.06,matFrame,0,.04,-ROOM.d/2+.03,false);
+  const panelMat=new THREE.MeshStandardMaterial({color:0xf2fbff,emissive:0xcdf3ff,emissiveIntensity:1.1});
+  [[-2.6,-2.6],[2.6,-2.6],[-2.6,2.6],[2.6,2.6]].forEach(([x,z])=>{
+    const panel=new THREE.Mesh(new THREE.BoxGeometry(1.6,.06,.7),panelMat);
+    panel.position.set(x,ROOM.h-.04,z); scene.add(panel);
+    const housing=new THREE.Mesh(new THREE.BoxGeometry(1.7,.05,.8),matFrame);
+    housing.position.set(x,ROOM.h-.005,z); scene.add(housing);
+  });
+  const vent=new THREE.Mesh(new THREE.BoxGeometry(.9,.5,.08),
+    new THREE.MeshStandardMaterial({color:0x8fa2b2,metalness:.6,roughness:.4}));
+  vent.position.set(-2.2,2.5,ROOM.d/2-.06); vent.rotation.y=Math.PI; scene.add(vent);
+}
+
+/* ================= INTERACTABLES ================= */
+const interactables=[];
+function reg(mesh,id,key,action,arg){ mesh.userData.iid=id;
+  interactables.push({mesh,id,key,arg,action}); return mesh; }
+function findGroup(root){ const out=[]; root.traverse(o=>{if(o.isMesh)out.push(o)}); return out; }
+
+/* ---- AIRLOCK (north wall) ---- */
+const doorGroup=new THREE.Group(); doorGroup.position.set(-3.4,0,-ROOM.d/2+.06); scene.add(doorGroup);
+const doorMesh=new THREE.Mesh(new RoundedBoxGeometry(1.1,2.3,.09,2,.02),
+  new THREE.MeshStandardMaterial({color:0xb9c8d4,roughness:.3,metalness:.65}));
+doorMesh.position.set(.55,1.15,0); doorMesh.castShadow=true; doorGroup.add(doorMesh);
+const doorStripe=new THREE.Mesh(new THREE.BoxGeometry(1.1,.12,.095),
+  new THREE.MeshStandardMaterial({color:0xffb300,emissive:0x6b4a00,emissiveIntensity:.4}));
+doorStripe.position.set(.55,.5,0); doorGroup.add(doorStripe);
+const swipe=new THREE.Mesh(new THREE.BoxGeometry(.1,.16,.06),
+  new THREE.MeshStandardMaterial({color:0x062b38,emissive:0x4ae3ff,emissiveIntensity:.8}));
+swipe.position.set(1.25,1.2,.02); doorGroup.add(swipe);
+box(1.34,2.5,.06,matFrame,-2.85,1.25,-ROOM.d/2+.02,false);
+doorGroup.position.z=-ROOM.d/2+.06;
+{ const t=dynCanvasTex(512,128,(g,w,h)=>{ g.fillStyle='#062b38';g.fillRect(0,0,w,h);
+    g.fillStyle='#4ae3ff';g.font='bold 56px sans-serif';g.textAlign='center';g.fillText(T('airlockSign'),w/2,84); });
+  const s=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.28),
+    new THREE.MeshBasicMaterial({map:t})); s.position.set(-2.85,2.62,-ROOM.d/2+.06); scene.add(s);
+  reg(swipe,'door','doorLbl',tryDoor);
+  findGroup(doorGroup).forEach(m=>reg(m,'door','doorLbl2',tryDoor));
+}
+let doorAnim=0;
+function tryDoor(){
+  if(state.doorOpen) return toast(T('doorOpen'));
+  if(!state.cured){ beep(160,.15,'sawtooth'); toast(T('doorNeedCure')); return; }
+  if(!state.hasCard){ beep(160,.15,'sawtooth'); toast(T('doorNeedCard')); return; }
+  beep(520,.09); setTimeout(()=>beep(780,.14),110);
+  state.doorOpen=true; objective('obj3'); winGame();
+}
+
+/* ---- PERIODIC TABLE (north wall, east) ---- */
+{
+  const W=3.6,H=2.0;
+  const t=dynCanvasTex(1080,600,(g)=>{
+    g.fillStyle='#0b2b36'; g.fillRect(0,0,1080,600);
+    g.fillStyle='#4ae3ff'; g.font='bold 36px sans-serif'; g.textAlign='center';
+    g.fillText(T('ptPosterTitle'),540,46);
+    const cw=54,ch=48,x0=54,y0=64;
+    for(const [n,sym,p,gr] of EL){
+      const x=x0+(gr-1)*cw, y=y0+(p-1)*ch;
+      g.fillStyle='#e8eef3'; g.fillRect(x,y,cw-3,ch-3);
+      g.fillStyle='#0b2b36'; g.textAlign='center';
+      g.font='bold 11px sans-serif'; g.fillText(n,x+(cw-3)/2,y+15);
+      g.font='bold '+(String(sym).length>2?11:16)+'px sans-serif';
+      g.fillText(sym,x+(cw-3)/2,y+34); }
+  });
+  const frame=new THREE.Mesh(new THREE.BoxGeometry(W+.12,H+.12,.06),matFrame);
+  frame.position.set(2.2,1.9,-ROOM.d/2+.05); scene.add(frame);
+  const poster=new THREE.Mesh(new THREE.PlaneGeometry(W,H),
+    new THREE.MeshStandardMaterial({map:t,roughness:.6}));
+  poster.position.set(2.2,1.9,-ROOM.d/2+.09); scene.add(poster);
+  reg(poster,'ptable','ptLbl',openPT);
+  reg(frame,'ptable','ptLbl',openPT);
+}
+
+/* ---- TABLE + CLIPBOARD (west-center) ---- */
+const tableGroup=new THREE.Group(); tableGroup.position.set(-2.6,0,0.6); scene.add(tableGroup);
+{
+  const top=new THREE.Mesh(new RoundedBoxGeometry(1.9,.08,1.0,2,.02),matBench);
+  top.position.y=.76; top.castShadow=top.receiveShadow=true; tableGroup.add(top);
+  [[-.87,-.42],[.87,-.42],[-.87,.42],[.87,.42]].forEach(([x,z])=>{
+    const l=new THREE.Mesh(new THREE.BoxGeometry(.08,.76,.08),matFrame);
+    l.position.set(x,.38,z); l.castShadow=true; tableGroup.add(l); });
+  const board=new THREE.Mesh(new THREE.BoxGeometry(.5,.02,.82),matFrame);
+  board.position.set(-.3,.81,0); board.rotation.y=.25; tableGroup.add(board);
+  const clipT=dynCanvasTex(256,512,(g,w,h)=>{ g.fillStyle='#f5edd6'; g.fillRect(0,0,w,h);
+    g.fillStyle='#2b2113'; g.font='bold 17px sans-serif'; g.textAlign='center';
+    g.fillText(T('clipCanvasTitle'),w/2,28); g.font='11px sans-serif';
+    SUBJECTS.forEach((s,i)=>{ g.fillText(`${s.id} ${s.h}${T('cm')} ${s.w}${T('kg')}`,w/2,60+i*56);
+      g.font='bold 18px sans-serif'; g.fillText('→ '+s.virus,w/2,80+i*56); g.font='11px sans-serif'; }); });
+  const paper=new THREE.Mesh(new THREE.PlaneGeometry(.44,.74),
+    new THREE.MeshStandardMaterial({map:clipT,roughness:.8}));
+  paper.rotation.x=-Math.PI/2; paper.rotation.z=.25; paper.position.set(-.3,.825,0); tableGroup.add(paper);
+  const clip=new THREE.Mesh(new THREE.BoxGeometry(.12,.02,.04),matMetal);
+  clip.position.set(-.3,.83,-.38); clip.rotation.y=.25; tableGroup.add(clip);
+  findGroup(tableGroup).forEach(m=>{ if(!m.userData.iid) reg(m,'clipboard','clipLbl',openDiag); });
+  reg(paper,'clipboard','clipLbl',openDiag);
+  reg(board,'clipboard','clipLbl',openDiag);
+  reg(clip,'clipboard','clipLbl',openDiag);
+}
+
+/* ---- HEIGHT + WEIGHT STATION (beside table) ---- */
+let screenMesh, screenTex, screenCtx, screenCanvas;
+{
+  const g=new THREE.Group(); g.position.set(-.6,0,0.6); scene.add(g);
+  const plat=new THREE.Mesh(new RoundedBoxGeometry(.7,.06,.7,2,.02),matFrame);
+  plat.position.y=.03; plat.castShadow=plat.receiveShadow=true; g.add(plat);
+  const pole=new THREE.Mesh(new THREE.BoxGeometry(.08,2.1,.08),matMetal);
+  pole.position.set(-.3,1.05,-.3); pole.castShadow=true; g.add(pole);
+  for(let i=0;i<9;i++){ const tick=new THREE.Mesh(new THREE.BoxGeometry(i%2?.06:.12,.015,.02),
+      new THREE.MeshBasicMaterial({color:0x0b2b36})); tick.position.set(-.25,.5+i*.18,-.26); g.add(tick); }
+  const arm=new THREE.Mesh(new THREE.BoxGeometry(.5,.04,.06),matMetal);
+  arm.position.set(-.05,1.9,-.3); g.add(arm);
+  screenCanvas=document.createElement('canvas'); screenCanvas.width=256; screenCanvas.height=128;
+  screenCtx=screenCanvas.getContext('2d');
+  const drawScreen=(txt)=>{ screenCtx.fillStyle='#062b38'; screenCtx.fillRect(0,0,256,128);
+    screenCtx.fillStyle='#4ae3ff'; screenCtx.font='bold 26px sans-serif'; screenCtx.textAlign='center';
+    txt.split('\n').forEach((l,i)=>screenCtx.fillText(l,128,52+i*34)); };
+  drawScreen('STEP ON\n? ?');
+  screenTex=new THREE.CanvasTexture(screenCanvas); screenTex.colorSpace=THREE.SRGBColorSpace;
+  screenMesh=new THREE.Mesh(new THREE.PlaneGeometry(.6,.3),
+    new THREE.MeshBasicMaterial({map:screenTex}));
+  screenMesh.position.set(.35,1.5,-.3); screenMesh.rotation.y=-.5; g.add(screenMesh);
+  const post=new THREE.Mesh(new THREE.BoxGeometry(.06,1.5,.06),matFrame);
+  post.position.set(.35,.75,-.32); g.add(post);
+  findGroup(g).forEach(m=>reg(m,'measure','measureLbl',doMeasure));
+}
+function doMeasure(){
+  state.measured=true; renderInv(); beep(700,.08); setTimeout(()=>beep(980,.1),110);
+  screenCtx.fillStyle='#062b38'; screenCtx.fillRect(0,0,256,128);
+  screenCtx.fillStyle='#7ee2a8'; screenCtx.font='bold 26px sans-serif'; screenCtx.textAlign='center';
+  screenCtx.fillText(ME.h+' cm',128,52); screenCtx.fillText(ME.w+' kg',128,86);
+  screenTex.needsUpdate=true;
+  showNote(T('measureTitle'),T('measureText',ME.h,ME.w));
+  toast(T('measureToast'));
+}
+
+/* ---- CURE FRIDGE (east wall) ---- */
+const fridgeGroup=new THREE.Group(); fridgeGroup.position.set(5.5,0,-3.2); scene.add(fridgeGroup);
+let fridgeDoor, fridgeLight, vials=[];
+{
+  // open-front shell so the vials are visible once the door swings
+  const shellMat=new THREE.MeshStandardMaterial({color:0xe6edf3,roughness:.3,metalness:.4});
+  const shellParts=[
+    [.06,2.0,1.4,.42,1.0,0],[.9,.06,1.4,0,1.97,0],[.9,.06,1.4,0,.03,0],
+    [.9,2.0,.06,0,1.0,.67],[.9,2.0,.06,0,1.0,-.67],
+  ];
+  const shellMeshes=shellParts.map(([w,h,d,x,y,z])=>{
+    const p=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),shellMat);
+    p.position.set(x,y,z); p.castShadow=true; fridgeGroup.add(p); return p; });
+  const signT=dynCanvasTex(256,64,(g,w,h)=>{ g.fillStyle='#b00020'; g.fillRect(0,0,w,h);
+    g.fillStyle='#fff'; g.font='bold 30px sans-serif'; g.textAlign='center'; g.fillText(T('fridgeSign'),w/2,42); });
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(.7,.18),
+    new THREE.MeshBasicMaterial({map:signT})); sign.position.set(-.46,1.85,0); sign.rotation.y=-Math.PI/2; fridgeGroup.add(sign);
+  fridgeDoor=new THREE.Group(); fridgeDoor.position.set(-.46,1.0,.7); fridgeGroup.add(fridgeDoor);
+  const glass=new THREE.Mesh(new THREE.BoxGeometry(.04,1.7,1.3),
+    new THREE.MeshPhysicalMaterial({color:0xcfeeff,transparent:true,opacity:.28,roughness:.06,metalness:0,clearcoat:1,clearcoatRoughness:.08}));
+  glass.position.set(0,0, -.65+.0); glass.position.z=-.65; fridgeDoor.add(glass);
+  const handle=new THREE.Mesh(new THREE.BoxGeometry(.06,.4,.06),matMetal);
+  handle.position.set(-.05,0,-1.15); fridgeDoor.add(handle);
+  const lock=new THREE.Mesh(new THREE.BoxGeometry(.12,.16,.06),
+    new THREE.MeshStandardMaterial({color:0x062b38,emissive:0xffb300,emissiveIntensity:.8}));
+  lock.position.set(-.02,.5,-1.0); fridgeDoor.add(lock);
+  [.7,1.15].forEach(y=>{ const sh=new THREE.Mesh(new THREE.BoxGeometry(.7,.04,1.2),matBench);
+    sh.position.set(0,y,0); fridgeGroup.add(sh); });
+  fridgeLight=new THREE.PointLight(0xbfefff,0,3,2); fridgeLight.position.set(-.2,1.6,0); fridgeGroup.add(fridgeLight);
+  const order=['NaCO','FeNa','CONe','HeLiCo','MgAr','HCoN','NiFe','KNe'];
+  order.forEach((v,i)=>{
+    const vg=new THREE.Group();
+    const liquid=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.26,14),
+      new THREE.MeshPhysicalMaterial({color:VIRUS_COLOR[v],emissive:VIRUS_COLOR[v],emissiveIntensity:.5,roughness:.15,metalness:0,clearcoat:1,clearcoatRoughness:.1,transparent:true,opacity:.92}));
+    vg.add(liquid);
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.07,10),matMetal);
+    cap.position.y=.165; vg.add(cap);
+    const labT=canvasTex(128,48,(g,w,h)=>{ g.fillStyle='#fff'; g.fillRect(0,0,w,h);
+      g.fillStyle='#111'; g.font='bold 22px sans-serif'; g.textAlign='center'; g.fillText(v,w/2,32); });
+    const lab=new THREE.Mesh(new THREE.PlaneGeometry(.2,.075),
+      new THREE.MeshBasicMaterial({map:labT})); lab.position.set(0,.02,.095); vg.add(lab);
+    const lab2=lab.clone(); lab2.rotation.y=Math.PI; lab2.position.z=-.095; vg.add(lab2);
+    const topRow=i>=4, vy=topRow?1.31:.86;
+    vg.position.set(-.1,vy,-.45+(i%4)*.3); vg.visible=false; fridgeGroup.add(vg);
+    vials.push({group:vg,virus:v,baseY:vy});
+    findGroup(vg).forEach(m=>reg(m,'vial','vialLabel',()=>drinkVial(v),v));
+  });
+  shellMeshes.forEach(p=>reg(p,'fridge','fridgeLbl',tryFridge));
+  findGroup(fridgeDoor).forEach(m=>reg(m,'fridge','fridgeLbl',tryFridge));
+  reg(lock,'fridge','fridgePadLbl',tryFridge);
+  reg(sign,'fridge','fridgeLbl',tryFridge);
+}
+function tryFridge(){
+  if(!state.fridgeOpen){ openKeypad(); return; }
+  toast(state.cured?T('fridgeOpenCured'):T('fridgeOpenNeed',state.diagnosed));
+}
+function drinkVial(v){
+  if(!state.fridgeOpen) return;
+  if(state.cured){ toast(T('alreadyCured')); return; }
+  if(v===ME.virus){
+    state.cured=true; flashGreen(); objective('obj2'); renderInv();
+    beep(660,.1); setTimeout(()=>beep(880,.12),120); setTimeout(()=>beep(1320,.18),260);
+    showNote(T('drinkTitle',v),T('drinkText'));
+  } else {
+    beep(150,.25,'sawtooth',.15);
+    toast(T('wrongVial',ME.virus,state.diagnosed));
+  }
+}
+
+/* ---- SCIENTIST LOCKERS 2x4 (south wall) ---- */
+const lockerBank=new THREE.Group(); lockerBank.position.set(0,0,5.55); scene.add(lockerBank);
+const lockers=[];
+{
+  const carcass=new THREE.Mesh(new RoundedBoxGeometry(5.0,2.0,.6,2,.03),
+    new THREE.MeshStandardMaterial({color:0x9fb2c2,roughness:.35,metalness:.55}));
+  carcass.position.y=1.0; carcass.castShadow=true; lockerBank.add(carcass);
+  const doorMat=new THREE.MeshStandardMaterial({color:0xc7d5e1,roughness:.35,metalness:.55});
+  for(let r=0;r<2;r++) for(let c=0;c<4;c++){
+    const i=r*4+c, x=-1.725+c*1.15, y=r===0?1.5:.55;
+    const pivot=new THREE.Group(); pivot.position.set(x-.575,y,-.33); lockerBank.add(pivot);
+    const door=new THREE.Mesh(new THREE.BoxGeometry(1.1,.85,.06),doorMat);
+    door.position.set(.575,0,0); door.castShadow=true; pivot.add(door);
+    const plateT=canvasTex(256,96,(g,w,h)=>{ g.fillStyle='#0b2b36'; g.fillRect(0,0,w,h);
+      g.fillStyle='#ffd54a'; g.font='bold 24px sans-serif'; g.textAlign='center';
+      g.fillText(RIDDLES[i].who,w/2,36); g.fillStyle='#fff'; g.font='bold 30px sans-serif'; g.fillText('? 🔒 ?',w/2,74); });
+    const plate=new THREE.Mesh(new THREE.PlaneGeometry(.8,.3),
+      new THREE.MeshBasicMaterial({map:plateT})); plate.position.set(.575,.18,-.035); plate.rotation.y=Math.PI; pivot.add(plate);
+    const slot=new THREE.Mesh(new THREE.BoxGeometry(.3,.03,.02),
+      new THREE.MeshStandardMaterial({color:0x5a7186})); slot.position.set(.575,-.25,-.035); pivot.add(slot);
+    const rec={pivot,opened:false};
+    lockers.push(rec);
+    const idx=i;
+    findGroup(pivot).forEach(m=>reg(m,'locker','lockerLabel',()=>tryLocker(idx),RIDDLES[idx].who));
+  }
+}
+function tryLocker(i){
+  const junk=T('junk')[i%T('junk').length];
+  if(lockers[i].opened){ toast(i===cardLocker?(state.hasCard?T('lockerEmptyCard'):T('lockerTakeCard')):T('lockerJunkOnly',RIDDLES[i].who,junk)); return; }
+  openRiddle(i);
+}
+/* access card hidden in one locker */
+const cardGroup=new THREE.Group();
+{
+  const card=new THREE.Mesh(new THREE.BoxGeometry(.16,.02,.1),
+    new THREE.MeshStandardMaterial({color:0xffd54a,emissive:0x6b4a00,emissiveIntensity:.7,metalness:.8,roughness:.3}));
+  cardGroup.add(card);
+  const cx=-1.725+(cardLocker%4)*1.15, cy=cardLocker<4?1.5:.55;
+  cardGroup.position.set(cx,cy,5.55-.5); cardGroup.visible=false; scene.add(cardGroup);
+  const hit=new THREE.Mesh(new THREE.SphereGeometry(.3,8,8),
+    new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})); cardGroup.add(hit);
+  findGroup(cardGroup).forEach(m=>reg(m,'card','cardLbl',()=>{
+    if(state.hasCard) return;
+    state.hasCard=true; cardGroup.visible=false; objective('obj3'); renderInv();
+    beep(880,.1); setTimeout(()=>beep(1174,.15),120);
+    toast(T('cardToast'));
+  }));
+}
+function openLocker(i){
+  lockers[i].opened=true;
+  const piv=lockers[i].pivot, t0=performance.now();
+  const tw=setInterval(()=>{ const k=Math.min((performance.now()-t0)/600,1);
+    piv.rotation.y=-1.9*k; if(k>=1)clearInterval(tw); },16);
+  beep(500,.08); setTimeout(()=>beep(700,.1),120);
+  if(i===cardLocker){ cardGroup.visible=true; toast(T('lockerOpenCard',RIDDLES[i].who)); }
+  else toast(T('lockerJunk',RIDDLES[i].who,T('junk')[i%T('junk').length]));
+}
+
+/* (protocol board removed — steps live in the HUD objectives) */
+
+/* ================= MODAL SYSTEM ================= */
+const modal=$('modal'),modalCard=$('modalCard'),modalTitle=$('modalTitle'),modalText=$('modalText'),
+      keypadUI=$('keypadUI'),keypadDisplay=$('keypadDisplay'),keypadGrid=$('keypadGrid'),
+      diagUI=$('diagUI'),diagTable=$('diagTable'),diagBtns=$('diagBtns'),
+      riddleUI=$('riddleUI'),riddleQ=$('riddleQ'),riddleA=$('riddleA'),riddleGo=$('riddleGo'),
+      riddleHintBtn=$('riddleHintBtn'),riddleHint=$('riddleHint'),
+      ptUI=$('ptUI'),ptGrid=$('ptGrid');
+function hidePanels(){ modalText.style.display='none'; keypadUI.classList.add('hidden');
+  diagUI.classList.add('hidden'); riddleUI.classList.add('hidden'); ptUI.classList.add('hidden');
+  modalCard.classList.remove('wide'); }
+function showNote(title,text){ modal.classList.add('open'); modalCard.classList.remove('dark');
+  modalTitle.textContent=title; modalText.textContent=text; modalText.style.display='block';
+  keypadUI.classList.add('hidden'); diagUI.classList.add('hidden');
+  riddleUI.classList.add('hidden'); ptUI.classList.add('hidden'); exitPointer(); }
+/* generic keypad */
+let padCtx=null, keypadEntry='';
+function openKeypad(){
+  modal.classList.add('open'); modalCard.classList.add('dark');
+  modalTitle.textContent=T('padTitle'); hidePanels();
+  modalText.style.display='none'; keypadUI.classList.remove('hidden');
+  keypadEntry=''; updPad(); exitPointer(); buildPad();
+  padCtx={correct:virusCode(ME.virus)};
+}
+function updPad(){ keypadDisplay.textContent=(keypadEntry+'____').slice(0,4); }
+function buildPad(){ keypadGrid.innerHTML='';
+  ['1','2','3','4','5','6','7','8','9','C','0','⏎'].forEach(k=>{
+    const b=document.createElement('button'); b.textContent=k; if(k==='C'||k==='⏎')b.className='fn';
+    b.onclick=()=>{ beep(k==='⏎'?700:500,.05);
+      if(k==='C')keypadEntry='';
+      else if(k==='⏎')submitPad();
+      else if(keypadEntry.length<4)keypadEntry+=k;
+      updPad(); };
+    keypadGrid.appendChild(b); });
+}
+function submitPad(){
+  if(keypadEntry===padCtx.correct){
+    closeModal(); state.fridgeOpen=true; renderInv();
+    beep(660,.1); setTimeout(()=>beep(880,.12),120); setTimeout(()=>beep(1320,.18),260);
+    fridgeLight.intensity=4;
+    vials.forEach(v=>v.group.visible=true);
+    const t0=performance.now();
+    const tw=setInterval(()=>{ const k=Math.min((performance.now()-t0)/700,1);
+      fridgeDoor.rotation.y=-1.8*k; if(k>=1)clearInterval(tw); },16);
+    toast(T('padOk',ME.virus));
+    lockPointer();
+  } else { beep(150,.25,'sawtooth',.15); keypadDisplay.style.color='#ff6b6b';
+    setTimeout(()=>keypadDisplay.style.color='#4ae3ff',600);
+    toast(T('padWrong')); keypadEntry=''; updPad(); }
+}
+/* diagnosis */
+function openDiag(){
+  modal.classList.add('open'); modalCard.classList.remove('dark');
+  modalTitle.textContent=T('clipDiagTitle'); hidePanels();
+  modalText.style.display='none'; diagUI.classList.remove('hidden'); exitPointer();
+  diagTable.innerHTML='<table><tr><th>'+T('thSub')+'</th><th>'+T('thH')+'</th><th>'+T('thW')+'</th><th>'+T('thStrain')+'</th></tr>'+
+    SUBJECTS.map(s=>'<tr><td>'+s.id+'</td><td>'+s.h+' '+T('cm')+'</td><td>'+s.w+' '+T('kg')+'</td><td><b>'+s.virus+'</b></td></tr>').join('')+'</table>'+
+    '<p style="font-size:12px">'+T('readingIs')+' '+(state.measured?('<b>'+ME.h+' '+T('cm')+' / '+ME.w+' '+T('kg')+'</b>'):('<i>'+T('notMeasured')+'</i>'))+'</p>';
+  diagBtns.innerHTML='';
+  Object.keys(VIRUS_EL).forEach(v=>{
+    const b=document.createElement('button'); b.textContent=v;
+    b.onclick=()=>{
+      if(!state.measured){ beep(180,.15,'square',.06); toast(T('needMeasure')); return; }
+      if(v===ME.virus){ state.diagnosed=v; closeModal(); objective('obj1'); renderInv();
+        beep(880,.1); setTimeout(()=>beep(1174,.15),120);
+        toast(T('diagnosedToast',v));
+        lockPointer();
+      } else { beep(150,.2,'sawtooth',.12); toast(T('wrongStrainV',v)); }
+    };
+    diagBtns.appendChild(b); });
+}
+/* riddles */
+let riddleIdx=-1;
+function openRiddle(i){
+  riddleIdx=i; modal.classList.add('open'); modalCard.classList.add('dark');
+  modalTitle.textContent=T('riddleTitle',RIDDLES[i].who); hidePanels();
+  modalText.style.display='none'; riddleUI.classList.remove('hidden'); exitPointer();
+  riddleQ.textContent='“'+RIDDLES[i].q[LANG]+'”'; riddleA.value=''; riddleA.placeholder=T('inputPh');
+  riddleHint.textContent=''; riddleHint.style.display='none';
+  riddleHintBtn.textContent=T('riddleHintBtn'); riddleHintBtn.style.display='block';
+  setTimeout(()=>riddleA.focus(),50);
+}
+riddleHintBtn.onclick=()=>{ riddleHint.textContent=RIDDLES[riddleIdx].h[LANG];
+  riddleHint.style.display='block'; riddleHintBtn.style.display='none'; beep(600,.06); };
+riddleGo.onclick=()=>{
+  const got=riddleA.value.trim().toLowerCase().replace(/\s+/g,'');
+  const ok=RIDDLES[riddleIdx].a.some(a=>a.toLowerCase().replace(/\s+/g,'')===got);
+  if(ok){ const i=riddleIdx; closeModal(); openLocker(i); lockPointer(); }
+  else { beep(150,.2,'sawtooth',.12); toast(T('riddleWrong')); }
+};
+riddleA.addEventListener('keydown',e=>{ if(e.key==='Enter')riddleGo.onclick(); e.stopPropagation(); });
+/* periodic table study view */
+function openPT(){
+  modal.classList.add('open'); modalCard.classList.remove('dark'); modalCard.classList.add('wide');
+  modalTitle.textContent=T('ptTitle'); hidePanels();
+  modalText.style.display='none'; ptUI.classList.remove('hidden'); exitPointer();
+  let html='';
+  for(let p=1;p<=9;p++) for(let gr=1;gr<=18;gr++){
+    const e=EL.find(k=>k[2]===p&&k[3]===gr);
+    if(!e) html+='<div class="gap"></div>';
+    else html+='<div class="cell'+(String(e[1]).length>2?' tiny':'')+'"><small>'+e[0]+'</small><b>'+e[1]+'</b></div>';
+  }
+  ptGrid.innerHTML=html;
+}
+function closeModal(){ modal.classList.remove('open'); if(state.playing&&!state.won)lockPointer(); }
+$('modalClose').onclick=closeModal;
+modal.addEventListener('click',e=>{ if(e.target===modal)closeModal(); });
+
+/* ================= INVENTORY ================= */
+function renderInv(){
+  const inv=$('inventory'); inv.innerHTML='';
+  const items=[
+    ['📏',state.measured?(ME.h+'/'+ME.w):'???',state.measured,T('invReading')],
+    ['🧬',state.diagnosed||'???',!!state.diagnosed,T('invVirus')],
+    ['💉',state.cured?T('curedTag'):'???',state.cured,T('invCure')],
+    ['🪪',state.hasCard?'✓':'???',state.hasCard,T('invCard')],
+  ];
+  items.forEach(([ico,txt,has,name])=>{ const d=document.createElement('div');
+    d.className='slot'+(has?' has':'');
+    d.innerHTML=has?ico+'<small>'+txt+'<br>'+name+'</small>':'<small style="font-size:18px;opacity:.25">·</small><small>???</small>';
+    inv.appendChild(d); });
+}
+renderInv();
+
+/* ================= CONTROLS ================= */
+const promptEl=$('prompt'),cross=$('crosshair');
+addEventListener('keydown',e=>{ if(modal.classList.contains('open'))return; // don't walk/type-hit while reading
+  state.keys[e.code]=true;
+  if(e.code==='KeyE')doInteract();
+  if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault(); });
+addEventListener('keyup',e=>state.keys[e.code]=false);
+document.addEventListener('mousemove',e=>{ if(!state.locked||!state.playing||state.won)return;
+  state.yaw-=e.movementX*.0023; state.pitch-=e.movementY*.0023;
+  state.pitch=Math.max(-1.45,Math.min(1.45,state.pitch)); });
+renderer.domElement.addEventListener('click',()=>{ if(state.playing&&!modal.classList.contains('open'))doInteract(); });
+function lockPointer(){ renderer.domElement.requestPointerLock?.(); }
+function exitPointer(){ document.exitPointerLock?.(); }
+document.addEventListener('pointerlockchange',()=>{
+  state.locked=document.pointerLockElement===renderer.domElement;
+  if(!state.locked&&state.playing&&!state.won&&!modal.classList.contains('open'))$('pauseScreen').classList.remove('hidden');
+  else $('pauseScreen').classList.add('hidden');
+});
+$('startBtn').onclick=()=>{ $('startScreen').classList.add('hidden'); startGame(); };
+$('resumeBtn').onclick=()=>{ $('pauseScreen').classList.add('hidden'); lockPointer(); };
+$('restartBtn').onclick=()=>location.reload();
+$('restartBtn2').onclick=()=>location.reload();
+function startGame(){ state.playing=true; state.startTime=performance.now(); lockPointer();
+  beep(440,.1); }
+function fmt(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+
+/* ================= COLLISION ================= */
+const solids=[
+  {x:-2.6,z:.6,r:1.2},{x:-.6,z:.6,r:.6},{x:5.5,z:-3.2,r:1.1},
+  {x:-1.2,z:5.55,r:1.3},{x:1.2,z:5.55,r:1.3},
+];
+function collide(p){
+  p.x=Math.max(-5.7,Math.min(5.7,p.x)); p.z=Math.max(-5.7,Math.min(5.7,p.z));
+  for(const s of solids){ if(!s.r)continue;
+    const dx=p.x-s.x,dz=p.z-s.z,d=Math.hypot(dx,dz);
+    if(d<s.r&&d>0.001){ p.x=s.x+dx/d*s.r; p.z=s.z+dz/d*s.r; } }
+}
+
+/* ================= HOVER ================= */
+const ray=new THREE.Raycaster(); ray.far=2.8;
+const center=new THREE.Vector2(0,0);
+let hovered=null;
+function doInteract(){ if(hovered)hovered.action(); }
+function updateHover(){
+  ray.setFromCamera(center,camera);
+  const meshes=interactables.map(i=>i.mesh);
+  const hits=ray.intersectObjects(meshes,false);
+  hovered=null; promptEl.style.display='none'; cross.classList.remove('active');
+  for(const it of interactables){ const m=it.mesh.material;
+    if(m&&m.emissive&&it.mesh.userData._hl){ m.emissive.setHex(it.mesh.userData._e??0x000000); it.mesh.userData._hl=false; } }
+  if(hits.length){
+    let it=null, m=null;
+    for(const h of hits){
+      const cand=h.object;
+      const cit=interactables.find(i=>i.mesh===cand); if(!cit)continue;
+      if(cand.visible===false)continue;
+      let o=cand, hidden=false;
+      while(o){ if(o.visible===false){ hidden=true; break; } o=o.parent; }
+      if(hidden)continue;
+      if(cit.id==='vial'&&!state.fridgeOpen)continue;
+      if(cit.id==='card'&&!cardGroup.visible)continue;
+      if(cit.id==='card'||cit.id==='vial'){ it=cit; m=cand; break; }
+      if(!it){ it=cit; m=cand; }
+    }
+    if(!it||!m)return;
+    hovered=it;
+    promptEl.innerHTML='<b>'+T('promptKey')+'</b> '+T(it.key,it.arg);
+    promptEl.style.display='block'; cross.classList.add('active');
+    const mat=m.material;
+    if(mat&&mat.emissive){ if(m.userData._e===undefined)m.userData._e=mat.emissive.getHex();
+      mat.emissive.setHex(0x0a4a5a); m.userData._hl=true; }
+  }
+}
+
+/* ================= LOOP ================= */
+const clock=new THREE.Clock();
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),.05);
+  if(state.playing&&!state.won){
+    state.elapsed=performance.now()-state.startTime;
+    $('timer').textContent=fmt(state.elapsed);
+    const f=(state.keys.KeyW||state.keys.ArrowUp?1:0)-(state.keys.KeyS||state.keys.ArrowDown?1:0);
+    const s=(state.keys.KeyD||state.keys.ArrowRight?1:0)-(state.keys.KeyA||state.keys.ArrowLeft?1:0);
+    const sp=player.speed*dt;
+    const sin=Math.sin(state.yaw),cos=Math.cos(state.yaw);
+    player.pos.x+=( -sin*f + cos*s )*sp;
+    player.pos.z+=( -cos*f - sin*s )*sp;
+    collide(player.pos);
+    applyCam();
+    flash.position.copy(camera.position);
+    const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
+    flash.target.position.copy(camera.position).addScaledVector(dir,3);
+    updateHover();
+    if(state.doorOpen){ doorAnim=Math.min(doorAnim+dt*1.4,1); doorGroup.rotation.y=-doorAnim*1.9; }
+    if(state.fridgeOpen && !state.cured){ const t=performance.now()*.003;
+      vials.forEach((v,i)=>{ v.group.position.y=v.baseY+Math.sin(t+i*1.7)*.02; }); }
+    if(state.hasCard===false && cardGroup.visible){ cardGroup.rotation.y=performance.now()*.002; }
+  }
+  ceilLight.intensity=30+Math.sin(performance.now()*.004)*.8;
+  if(typeof alarmLight!=='undefined'){
+    alarmLight.color.setHex(state.doorOpen?0x2bff88:0xff3b5c);
+    alarmLight.intensity=(state.doorOpen?3:1.5)+Math.sin(performance.now()*.006)*1.2;
+  }
+  renderer.render(scene,camera);
+}
+addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+applyCam(); loop();
+
+function winGame(){
+  state.won=true; exitPointer();
+  $('winStats').textContent=T('winStats',fmt(state.elapsed),ME.virus,virusCode(ME.virus));
+  $('epilogue').innerHTML=T('winEpi',ME.virus,ME.h,ME.w);
+  $('journalScore').textContent=T('winScore',ME.id,ME.h,ME.w,ME.virus,virusCode(ME.virus),RIDDLES[cardLocker].who);
+  setTimeout(()=>{ $('winScreen').classList.remove('hidden'); beep(523,.12); setTimeout(()=>beep(659,.12),140);
+    setTimeout(()=>beep(784,.12),280); setTimeout(()=>beep(1046,.25),420); },1400);
+  toast(T('winToast'),3000);
+}
+</script>
+</body>
+</html>
