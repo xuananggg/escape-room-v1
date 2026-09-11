@@ -9,23 +9,23 @@
   html,body { width:100%; height:100%; overflow:hidden; background:#0a0a0f; font-family:'Segoe UI', system-ui, sans-serif; }
   #app { position:fixed; inset:0; }
   canvas { display:block; }
-  #crosshair { position:fixed; left:50%; top:50%; width:8px; height:8px; margin:-4px 0 0 -4px;
-    border-radius:50%; background:rgba(255,255,255,.85); box-shadow:0 0 6px rgba(0,0,0,.8);
+  #crosshair { position:fixed; left:50%; top:50%; width:5px; height:5px; margin:-2.5px 0 0 -2.5px;
+    border-radius:50%; background:rgba(255,255,255,.65); box-shadow:0 0 4px rgba(0,0,0,.7);
     pointer-events:none; z-index:20; transition:transform .12s, background .12s; }
-  #crosshair.active { transform:scale(1.8); background:#4ae3ff; }
+  #crosshair.active { transform:scale(1.35); background:rgba(255,255,255,.95); }
   #prompt { position:fixed; left:50%; top:58%; transform:translateX(-50%); z-index:20;
-    background:rgba(10,12,20,.82); border:1px solid rgba(74,227,255,.45); color:#fff;
-    padding:8px 16px; border-radius:10px; font-size:14px; display:none; pointer-events:none;
+    background:rgba(8,10,14,.88); border:1px solid rgba(255,255,255,.2); color:#dfe5ea;
+    padding:7px 14px; border-radius:8px; font-size:13px; display:none; pointer-events:none;
     backdrop-filter:blur(6px); white-space:nowrap; }
-  #prompt b { color:#4ae3ff; }
+  #prompt b { color:#9fc6d4; }
   #hud { position:fixed; inset:0; pointer-events:none; z-index:15; }
   #topbar { position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between;
     align-items:flex-start; padding:14px 16px; }
   .pill { background:rgba(10,12,20,.75); border:1px solid rgba(255,255,255,.14); color:#e8eaf0;
     border-radius:12px; padding:8px 14px; font-size:13px; backdrop-filter:blur(8px); }
-  #timer { font-variant-numeric:tabular-nums; font-weight:700; font-size:15px; color:#4ae3ff; }
+  #timer { font-variant-numeric:tabular-nums; font-weight:700; font-size:15px; color:#c8d6dd; }
   #objectives { max-width:340px; line-height:1.5; }
-  #objectives h4 { font-size:11px; letter-spacing:.12em; color:#4ae3ff; margin-bottom:6px; }
+  #objectives h4 { font-size:11px; letter-spacing:.12em; color:#9fc6d4; margin-bottom:6px; }
   #objectives div { font-size:13px; opacity:.9; }
   #objectives div.done { text-decoration:line-through; opacity:.55; color:#7ee2a8; }
   #inventory { position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
@@ -34,10 +34,10 @@
     border:1px solid rgba(255,255,255,.15); display:flex; flex-direction:column;
     align-items:center; justify-content:center; font-size:22px; color:#fff; }
   .slot small { font-size:9px; margin-top:2px; color:#aaa; text-align:center; line-height:1.1; }
-  .slot.has { border-color:#4ae3ff; background:rgba(8,38,48,.85); box-shadow:0 0 14px rgba(74,227,255,.25); }
+  .slot.has { border-color:#7fa8b8; background:rgba(20,28,34,.9); }
   #toast { position:fixed; bottom:96px; left:50%; transform:translateX(-50%); z-index:30;
-    background:#171c2e; color:#fff; border:1px solid rgba(255,255,255,.15);
-    padding:10px 18px; border-radius:10px; font-size:14px; display:none; max-width:90vw; text-align:center; }
+    background:#14171c; color:#dfe5ea; border:1px solid rgba(255,255,255,.12);
+    padding:10px 18px; border-radius:8px; font-size:14px; display:none; max-width:90vw; text-align:center; }
   .overlay { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
     background:radial-gradient(ellipse at center, rgba(20,22,40,.92), rgba(5,6,12,.97));
     backdrop-filter:blur(6px); padding:20px; }
@@ -58,11 +58,9 @@
   .story { background:#0d1226; border-left:3px solid #4ae3ff; padding:12px 14px; border-radius:0 10px 10px 0;
     font-size:13.5px; line-height:1.65; color:#d6dbee; margin:12px 0; font-style:italic; }
   .story b { color:#4ae3ff; font-style:normal; }
-  #chapter { position:fixed; top:22%; left:50%; transform:translateX(-50%); z-index:40; text-align:center;
-    pointer-events:none; display:none; }
-  #chapter h2 { font-size:32px; letter-spacing:.22em; color:#fff; text-shadow:0 4px 30px #000; }
-  #chapter p { color:#4ae3ff; letter-spacing:.15em; font-size:13px; margin-top:6px; }
   #flash { position:fixed; inset:0; z-index:45; background:#2bff88; opacity:0; pointer-events:none; transition:opacity .8s; }
+  #vignette { position:fixed; inset:0; z-index:10; pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,.5) 100%); }
   #modal { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center;
     background:rgba(0,0,0,.55); padding:18px; }
   #modal.open { display:flex; }
@@ -146,13 +144,13 @@
 <div id="prompt"></div>
 <div id="toast"></div>
 <div id="flash"></div>
+<div id="vignette"></div>
 <div id="scopeOverlay">
   <h3 id="scopeTitle"></h3>
   <canvas id="scopeCv" width="300" height="300"></canvas>
   <p id="scopeCap"></p>
   <button id="scopeClose">✕</button>
 </div>
-<div id="chapter"><h2 id="chapterTitle"></h2><p id="chapterSub"></p></div>
 
 <div id="startScreen" class="overlay">
   <div class="card">
@@ -277,12 +275,7 @@ function beep(f=600,d=.08,type='sine',g=.12){
   }catch(e){}
 }
 function objective(id){ $(id).classList.add('done'); }
-function chapter(title,sub=''){ const c=$('chapter');
-  $('chapterTitle').textContent=title; $('chapterSub').textContent=sub;
-  c.style.display='block'; c.style.opacity='1';
-  setTimeout(()=>{ c.style.transition='opacity 1.2s'; c.style.opacity='0';
-    setTimeout(()=>c.style.display='none',1300); },2200); }
-function flashGreen(){ const f=$('flash'); f.style.transition='none'; f.style.opacity='.55';
+function flashGreen(){ const f=$('flash'); f.style.transition='none'; f.style.opacity='.32';
   requestAnimationFrame(()=>{ f.style.transition='opacity 1.2s'; f.style.opacity='0'; }); }
 
 /* ================= I18N (English / 中文) ================= */
@@ -465,7 +458,7 @@ function setLang(l){ LANG=l;
 const app=$('app');
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x060d14);
-scene.fog=new THREE.Fog(0x060d14,12,32);
+scene.fog=new THREE.Fog(0x060d14,9,26);
 const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.05,60);
 camera.rotation.order='YXZ';
 const renderer=new THREE.WebGLRenderer({antialias:true});
@@ -474,21 +467,21 @@ renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.12;
+renderer.toneMappingExposure=1.0;
 app.appendChild(renderer.domElement);
 /* image-based lighting: soft studio reflections on every metal/gloss surface */
 const pmrem=new THREE.PMREMGenerator(renderer);
 scene.environment=pmrem.fromScene(new RoomEnvironment(renderer),.04).texture;
-scene.add(new THREE.AmbientLight(0x9fd8e8,.35));
-scene.add(new THREE.HemisphereLight(0xd8f6ff,0x2a3542,.55));
-const ceilLight=new THREE.PointLight(0xd8f6ff,30,24,1.6);
+scene.add(new THREE.AmbientLight(0x9fd8e8,.22));
+scene.add(new THREE.HemisphereLight(0xd8f6ff,0x2a3542,.32));
+const ceilLight=new THREE.PointLight(0xd8f6ff,22,24,1.6);
 ceilLight.position.set(0,3.0,0); ceilLight.castShadow=true;
 ceilLight.shadow.mapSize.set(2048,2048); scene.add(ceilLight);
-const fillLight=new THREE.PointLight(0xbfe6ff,12,24,1.6);
+const fillLight=new THREE.PointLight(0xbfe6ff,8,24,1.6);
 fillLight.position.set(0,3.0,3.5); scene.add(fillLight);
 const lampLight=new THREE.PointLight(0x7ef0c8,0,4,2); scene.add(lampLight);
 const alarmLight=new THREE.PointLight(0xff3b5c,2,14,1.8); alarmLight.position.set(0,3.0,-5.2); scene.add(alarmLight);
-const flash=new THREE.SpotLight(0xffffff,6,9,.5,.45,1.2); scene.add(flash); scene.add(flash.target);
+const flash=new THREE.SpotLight(0xfff2df,8,10,.55,.5,1.2); scene.add(flash); scene.add(flash.target);
 const player={ pos:new THREE.Vector3(-30,1.6,2.5), vel:new THREE.Vector3(), speed:3.2 };
 function applyCam(){ camera.position.copy(player.pos); camera.rotation.set(state.pitch,state.yaw,0); }
 
@@ -518,10 +511,10 @@ wallTex.wrapS=wallTex.wrapT=THREE.RepeatWrapping; wallTex.repeat.set(6,1);
 
 /* ================= ROOM (12m lab hall) ================= */
 const ROOM={w:12,h:3.4,d:12};
-const matFloor=new THREE.MeshStandardMaterial({map:floorTex,roughness:.38,metalness:.22});
+const matFloor=new THREE.MeshStandardMaterial({map:floorTex,roughness:.52,metalness:.1});
 const matWall=new THREE.MeshStandardMaterial({map:wallTex,roughness:.9});
 const matCeil=new THREE.MeshStandardMaterial({color:0xe8eef3});
-const matBench=new THREE.MeshStandardMaterial({color:0xdfe7ee,roughness:.4,metalness:.25});
+const matBench=new THREE.MeshStandardMaterial({color:0xdfe7ee,roughness:.55,metalness:.1});
 const matFrame=new THREE.MeshStandardMaterial({color:0x5a6b7a,roughness:.5,metalness:.4});
 const matMetal=new THREE.MeshStandardMaterial({color:0x9aa2b8,roughness:.35,metalness:.7});
 const matGold=new THREE.MeshStandardMaterial({color:0xffd54a,roughness:.25,metalness:.9,emissive:0x553d00,emissiveIntensity:.5});
@@ -539,7 +532,7 @@ function box(w,h,d,mat,x,y,z,shadow=true){ const m=new THREE.Mesh(new THREE.BoxG
   mk(ROOM.d,ROOM.h,-ROOM.w/2,ROOM.h/2,0, Math.PI/2);
   mk(ROOM.d,ROOM.h, ROOM.w/2,ROOM.h/2,0,-Math.PI/2);
   box(ROOM.w,.08,.06,matFrame,0,.04,-ROOM.d/2+.03,false);
-  const panelMat=new THREE.MeshStandardMaterial({color:0xf2fbff,emissive:0xcdf3ff,emissiveIntensity:1.1});
+  const panelMat=new THREE.MeshStandardMaterial({color:0xe8f0f4,emissive:0xb9d4de,emissiveIntensity:.85});
   [[-2.6,-2.6],[2.6,-2.6],[-2.6,2.6],[2.6,2.6]].forEach(([x,z])=>{
     const panel=new THREE.Mesh(new THREE.BoxGeometry(1.6,.06,.7),panelMat);
     panel.position.set(x,ROOM.h-.04,z); scene.add(panel);
@@ -744,7 +737,7 @@ let fridgeDoor, fridgeLight, vials=[];
   {
     const vg=new THREE.Group();
     const liquid=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.32,16),
-      new THREE.MeshPhysicalMaterial({color:VIRUS_COLOR[ME.virus],emissive:VIRUS_COLOR[ME.virus],emissiveIntensity:.6,roughness:.15,metalness:0,clearcoat:1,clearcoatRoughness:.1,transparent:true,opacity:.92}));
+      new THREE.MeshPhysicalMaterial({color:VIRUS_COLOR[ME.virus],emissive:VIRUS_COLOR[ME.virus],emissiveIntensity:.28,roughness:.25,metalness:0,clearcoat:1,clearcoatRoughness:.15,transparent:true,opacity:.9}));
     vg.add(liquid);
     const cap=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.08,12),matMetal);
     cap.position.y=.2; vg.add(cap);
@@ -1044,7 +1037,7 @@ let surgDoor;
   mk(10,ROOM.h, SX,ROOM.h/2, 4, Math.PI);
   mk(8,ROOM.h, SX-5,ROOM.h/2,0, Math.PI/2);
   mk(8,ROOM.h, SX+5,ROOM.h/2,0, -Math.PI/2);
-  const sLight=new THREE.PointLight(0xeafff2,22,14,1.6);
+  const sLight=new THREE.PointLight(0xeafff2,16,14,1.6);
   sLight.position.set(SX,3.0,0); sLight.castShadow=true;
   sLight.shadow.mapSize.set(1024,1024); scene.add(sLight);
   const lampArm=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,1.0,8),matMetal);
@@ -1146,7 +1139,7 @@ let surgDoor;
     new THREE.MeshPhysicalMaterial({color:0xcfeeff,transparent:true,opacity:.3,roughness:.06,clearcoat:1}));
   sWin.position.set(-.06,.55,0); sWin.rotation.y=-Math.PI/2; surgDoor.add(sWin);
   const sPad=new THREE.Mesh(new THREE.BoxGeometry(.12,.2,.16),
-    new THREE.MeshStandardMaterial({color:0x062b38,emissive:0x4ae3ff,emissiveIntensity:.6}));
+    new THREE.MeshStandardMaterial({color:0x062b38,emissive:0x2a7d96,emissiveIntensity:.5}));
   sPad.position.set(SX+4.88,1.4,1.0); scene.add(sPad);
   reg(sFrame,'surgdoor','surgDoorLbl',trySurgDoor);
   reg(surgDoor,'surgdoor','surgDoorLbl',trySurgDoor);
@@ -1443,7 +1436,7 @@ function loop(){
     tw.obj.position.lerpVectors(tw.from,tw.to,e);
     tw.obj.position.y+=Math.sin(k*Math.PI)*.12;
     if(k>=1){ tweens.splice(i,1); if(tw.done)tw.done(); } }
-  ceilLight.intensity=30+Math.sin(performance.now()*.004)*.8;
+  ceilLight.intensity=22+Math.sin(performance.now()*.004)*.6;
   if(typeof alarmLight!=='undefined'){
     alarmLight.color.setHex(state.doorOpen?0x2bff88:0xff3b5c);
     alarmLight.intensity=(state.doorOpen?3:1.5)+Math.sin(performance.now()*.006)*1.2;
