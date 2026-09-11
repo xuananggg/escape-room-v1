@@ -100,6 +100,14 @@
   #ptGrid .cell.tiny b { font-size:6px; }
   #ptGrid .cell.tiny small { font-size:6px; }
   #ptGrid .gap { visibility:hidden; }
+  #mixInstr { font-size:13.5px; white-space:pre-wrap; }
+  #mixTubes { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0; }
+  #mixTubes button { padding:12px 6px; font-size:15px; font-weight:800; border-radius:10px; cursor:pointer;
+    border:1px solid #6b5d1f; background:#2a2410; color:#ffd54a; }
+  #mixTubes button:disabled { opacity:.35; cursor:default; }
+  #mixProg { font-size:13px; font-weight:700; min-height:20px; }
+  #mixAct { margin-top:10px; width:100%; padding:12px; font-size:15px; font-weight:800; border-radius:10px;
+    border:none; background:#ffd54a; color:#111; cursor:pointer; }
   #dotsCap { font-size:14px; margin:6px 0; }
   #dotsCv { width:100%; border-radius:10px; background:#062b38; }
   #scopeOverlay { position:fixed; inset:0; z-index:70; display:none; align-items:center;
@@ -134,7 +142,8 @@
       <div id="obj0">Escape the surgery ward</div>
       <div id="obj1">Step 1: Identify the virus</div>
       <div id="obj2">Step 2: Find and consume the cure</div>
-      <div id="obj3">Step 3: Find the access card and escape</div>
+      <div id="obj3">Step 3: Build the bomb and overload the electrics</div>
+      <div id="obj4">Step 4: Find the access card and escape in 60 seconds</div>
     </div>
     <div class="pill">⏱ <span id="timer">00:00</span><br><span id="hudHint" style="font-size:11px;opacity:.7">click objects • <kbd>E</kbd> interact</span></div>
   </div>
@@ -185,6 +194,14 @@
   </div>
 </div>
 
+<div id="deadScreen" class="overlay hidden">
+  <div class="card" style="text-align:center;border-color:#7a2f2f">
+    <h1 id="deadH">💥 TOO LATE</h1>
+    <p id="deadP"></p>
+    <button class="btn" id="retryBtn">TRY AGAIN</button>
+  </div>
+</div>
+
 <div id="modal">
   <div id="modalCard">
     <button id="modalClose">✕</button>
@@ -198,14 +215,13 @@
       <div id="diagTable"></div>
       <div id="diagBtns"></div>
     </div>
-    <div id="riddleUI" class="hidden">
-      <p id="riddleQ"></p>
-      <input id="riddleA" placeholder="Type your answer…" autocomplete="off" />
-      <button id="riddleGo">UNLOCK LOCKER →</button>
-      <button id="riddleHintBtn">💡 Need a hint?</button>
-      <p id="riddleHint"></p>
-    </div>
     <div id="ptUI" class="hidden"><div id="ptGrid"></div></div>
+    <div id="mixUI" class="hidden">
+      <p id="mixInstr"></p>
+      <div id="mixTubes"></div>
+      <p id="mixProg"></p>
+      <button id="mixAct" class="hidden">STIR</button>
+    </div>
   </div>
 </div>
 
@@ -260,8 +276,9 @@ const RIDDLES=[
 const cardLocker=Math.floor(Math.random()*8);
 console.log('%ccard locker: '+cardLocker, 'color:gold');
 
-const state={ playing:false, won:false, locked:false, room:'surgery', surgOpen:false, scopeBusy:false, scopeOpen:false,
-  measured:false, diagnosed:null, fridgeOpen:false, cured:false, hasCard:false, doorOpen:false,
+const state={ playing:false, won:false, dead:false, locked:false, room:'surgery', surgOpen:false, scopeBusy:false, scopeOpen:false,
+  measured:false, diagnosed:null, fridgeOpen:false, cured:false, hasBomb:false, blackout:false, countdown:null, lastTick:60,
+  hasKey:false, hasCard:false, doorOpen:false, mixStage:0, mixAdded:[],
   startTime:0, elapsed:0, keys:{}, yaw:0, pitch:0 };
 const $=id=>document.getElementById(id);
 const toastEl=$('toast'); let toastT=null;
@@ -286,7 +303,8 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   ctl1:'🖱️ Click <b>START</b> → mouse looks around (pointer lock)',
   ctl2:'<code>W A S D</code> to walk • <code>E</code> / click to interact',
   startBtn:'▶ &nbsp;WAKE UP, SUBJECT 07',
-  objH:'◉ TRIAL PROTOCOL', obj1:'Step 1: Identify the virus', obj2:'Step 2: Find and consume the cure', obj3:'Step 3: Find the access card and escape',
+  objH:'◉ TRIAL PROTOCOL', obj1:'Step 1: Identify the virus', obj2:'Step 2: Find and consume the cure',
+  obj3:'Step 3: Build the bomb and overload the electrics', obj4:'Step 4: Find the access card and escape in 60 seconds',
   hudHint:'click objects • <kbd>E</kbd> interact',
   pauseH:'PAUSED', pauseP:"Trial suspended. The virus waits for no one, but we'll wait.",
   resumeBtn:'RESUME', restartBtn2:'Restart trial', restartBtn:'VOLUNTEER AGAIN',
@@ -294,6 +312,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   doorOpen:'The airlock is already open — go!',
   doorNeedCure:'🚫 DECONTAMINATION DENIED — viral load detected.',
   doorNeedCard:'🔒 Card reader blinks red. Access denied.',
+  doorNeedPower:'🔒 The airlock is deadlocked. Something must trip the emergency release.',
   ptTitle:'🧪 Periodic table (tap ✕ to look away)', ptPosterTitle:'PERIODIC TABLE OF ELEMENTS',
   clipCanvasTitle:'TRIAL ROSTER', clipDiagTitle:'📋 Trial roster — name YOUR virus',
   thSub:'Subject', thH:'Height', thW:'Weight', thStrain:'Virus code', cm:'cm', kg:'kg',
@@ -324,6 +343,24 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   lockerJunkOnly:(who,j)=>'Locker '+who+': just '+j,
   cardLabel:'SCIENTIST access card — take it!',
   cardToast:'🪪 ACCESS CARD acquired!',
+  lockerLocked:'Locked. You need the locker key.',
+  lockerNoFit:'The key doesn’t turn in this one.',
+  panelLbl:'overload panel', pourNeed:'The panel hums under load. It needs a surge to trip it.',
+  pourGo:'OVERLOAD! SIXTY SECONDS — RUN!', panelFried:'The panel is fried.',
+  coatLbl:'lab coat — search the pockets', keyToast:'Locker key acquired!', coatEmpty:'Pockets empty.',
+  tubesLbl:'test-tube rack — mix a batch',
+  mixTitle:'⚗️ Mixing bench — liquid bomb',
+  mixInstr:'Ward mixer protocol:\nMIX 7 with 4 — then STIR well.\nSHAKE 11. BURN 2.\nThen MIX ALL together.\n\n(The numbers are pH levels — not tube numbers.)',
+  mixBeakerEmpty:'Beaker: empty',
+  mixAdded:ph=>'Added pH '+ph+'.',
+  mixWrong:'The mixture fizzles grey and dies. Start over.',
+  mixWeak:'You can barely stand... cure yourself first.',
+  mixBuilt:'Unstable liquid bomb acquired!',
+  mixEmpty:'Nothing left to mix.',
+  actStir:'STIR · 搅拌', actShake:'SHAKE · 摇晃', actBurn:'BURN · 加热', actMix:'MIX ALL · 全部混合',
+  deadH:'💥 TOO LATE',
+  deadP:'Sixty seconds gone. The lab — and you — are gone with it.',
+  retryBtn:'TRY AGAIN',
   cardChapterSub:'ACCESS GRANTED',
   riddleTitle:who=>'🔒 '+who+'’s locker', inputPh:'Type your answer…', riddleHintBtn:'💡 Need a hint?',
   riddleWrong:'❌ Not quite — try again! (Math, joke or science…)',
@@ -331,7 +368,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   startToast1:'🧬 Wristband: SUBJECT 07. Step 1: take your HEIGHT + WEIGHT by the table…',
   startToast2:'📏 The stadiometer + scale stand NEXT TO the table.',
   step1done:'STEP 1 COMPLETE', step2done:'STEP 2 COMPLETE', step2sub:'VIRUS NEUTRALIZED', step3done:'STEP 3 COMPLETE',
-  invReading:'reading', invVirus:'virus', invCure:'cure', invCard:'card', curedTag:'CURED',
+  invReading:'reading', invVirus:'virus', invCure:'cure', invBomb:'bomb', invKey:'key', invCard:'card', curedTag:'CURED',
   winStats:(t,v,c)=>'Discharged in '+t+' • Strain '+v+' • Fridge code '+c,
   winEpi:(v,h,w)=>'The airlock sighs open. Your bloodwork glows green: <b>viral load UNDETECTABLE</b>, strain <b>'+v+'</b> neutralized.<br><br>Over the speaker, a voice almost smiles: <i>“Subject 07… you measured, you decoded, you reasoned. '+h+' centimeters, '+w+' kilos of pure scientific method. You’re free — and cured.”</i><br><br><b>★ Trial complete: diagnosed '+v+', drank the cure, swiped out. ★</b>',
   winScore:(id,h,w,v,c,who)=>'🧬 '+id+' • '+h+'cm/'+w+'kg • '+v+' → '+c+' • card: '+who,
@@ -363,7 +400,8 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   ctl1:'🖱️ 点击 <b>开始</b> → 鼠标环视（指针锁定）',
   ctl2:'<code>W A S D</code> 行走 • <code>E</code> / 点击 进行互动',
   startBtn:'▶ &nbsp;醒来吧，07号受试者',
-  objH:'◉ 试验流程', obj1:'第一步：确认病毒', obj2:'第二步：找到解药并服下', obj3:'第三步：找到门禁卡并逃离',
+  objH:'◉ 试验流程', obj1:'第一步：确认病毒', obj2:'第二步：找到解药并服下',
+  obj3:'第三步：制造炸弹并破坏电力系统', obj4:'第四步：找到门禁卡并在60秒内逃离',
   hudHint:'点击物品 • <kbd>E</kbd> 互动',
   pauseH:'已暂停', pauseP:'试验暂停。病毒不会等人，但我们会等你。',
   resumeBtn:'继续', restartBtn2:'重新开始', restartBtn:'再次参加试验',
@@ -371,6 +409,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   doorOpen:'气闸已经开了——快走！',
   doorNeedCure:'🚫 消杀拒绝通行——检测到病毒载量。',
   doorNeedCard:'🔒 读卡器闪着红灯，拒绝通行。',
+  doorNeedPower:'🔒 气闸锁死了，需要触发紧急释放。',
   ptTitle:'🧪 元素周期表（点 ✕ 移开视线）', ptPosterTitle:'元素周期表',
   clipCanvasTitle:'受试者名单', clipDiagTitle:'📋 受试者名单——确认你的病毒',
   thSub:'受试者', thH:'身高', thW:'体重', thStrain:'病毒编号', cm:'厘米', kg:'公斤',
@@ -401,6 +440,23 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   lockerJunkOnly:(who,j)=>who+' 的柜子：只有'+j,
   cardLabel:'科学家门禁卡——拿走！',
   cardToast:'🪪 获得门禁卡！',
+  lockerLocked:'锁着，需要储物柜钥匙。',
+  lockerNoFit:'钥匙拧不动这把锁。',
+  panelLbl:'过载电箱', pourNeed:'电箱嗡嗡作响，需要一次过载冲击才能跳闸。',
+  pourGo:'过载！60秒——跑！', panelFried:'电箱已经烧毁。',
+  coatLbl:'白大褂——翻口袋', keyToast:'获得储物柜钥匙！', coatEmpty:'口袋空了。',
+  tubesLbl:'试管架——混合药剂',
+  mixTitle:'⚗️ 混合台——液体炸弹',
+  mixInstr:'混合协议：\n将 7 与 4 混合——然后充分搅拌。\n摇晃 11。加热 2。\n最后全部混合。\n\n（数字是pH值——不是试管编号。）',
+  mixBeakerEmpty:'烧杯：空',
+  mixAdded:ph=>'已加入 pH '+ph+'。',
+  mixWrong:'混合物冒泡变灰，失败了。重新开始。',
+  mixWeak:'你连站都站不稳……先治愈自己。',
+  mixBuilt:'获得不稳定的液体炸弹！',
+  mixEmpty:'没什么可混合了。',
+  deadH:'💥 来不及了',
+  deadP:'60秒到了。实验室——和你一起——化为灰烬。',
+  retryBtn:'再试一次',
   cardChapterSub:'已获得通行权限',
   riddleTitle:who=>'🔒 '+who+' 的储物柜', inputPh:'输入答案……', riddleHintBtn:'💡 需要提示？',
   riddleWrong:'❌ 不太对——再试试！（数学、笑话或科学……）',
@@ -408,7 +464,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   startToast1:'🧬 手环：07号受试者。第一步：去桌旁测量身高体重……',
   startToast2:'📏 身高体重仪就在桌子旁边。',
   step1done:'第一步完成', step2done:'第二步完成', step2sub:'病毒已清除', step3done:'第三步完成',
-  invReading:'体征', invVirus:'病毒', invCure:'解药', invCard:'门禁卡', curedTag:'已治愈',
+  invReading:'体征', invVirus:'病毒', invCure:'解药', invBomb:'炸弹', invKey:'钥匙', invCard:'门禁卡', curedTag:'已治愈',
   winStats:(t,v,c)=>'出院用时 '+t+' • 病毒株 '+v+' • 冷藏柜密码 '+c,
   winEpi:(v,h,w)=>'气闸缓缓打开。你的血液检测一片绿色：<b>病毒载量未检出</b>，病毒株 <b>'+v+'</b> 已被清除。<br><br>广播里的声音带着笑意：<i>“07号……你测量、解码、推理。'+h+' 厘米、'+w+' 公斤的纯粹科学方法。你自由了——也被治愈了。”</i><br><br><b>★ 试验完成：确诊 '+v+'、服下解药、刷卡逃离。★</b>',
   winScore:(id,h,w,v,c,who)=>'🧬 '+id+' • '+h+'厘米/'+w+'公斤 • '+v+' → '+c+' • 卡片：'+who,
@@ -441,7 +497,7 @@ function setLang(l){ LANG=l;
   $('startSub').textContent=T('startSub'); $('startStory').innerHTML=T('startStory');
   $('ctl1').innerHTML=T('ctl1'); $('ctl2').innerHTML=T('ctl2'); $('startBtn').innerHTML=T('startBtn');
   $('objH').textContent=T('objH'); $('obj0').textContent=T('obj0'); $('obj1').textContent=T('obj1');
-  $('obj2').textContent=T('obj2'); $('obj3').textContent=T('obj3');
+  $('obj2').textContent=T('obj2'); $('obj3').textContent=T('obj3'); $('obj4').textContent=T('obj4');
   $('hudHint').innerHTML=T('hudHint');
   $('pauseH').textContent=T('pauseH'); $('pauseP').textContent=T('pauseP');
   $('resumeBtn').textContent=T('resumeBtn'); $('restartBtn2').textContent=T('restartBtn2');
@@ -574,9 +630,10 @@ let doorAnim=0;
 function tryDoor(){
   if(state.doorOpen) return toast(T('doorOpen'));
   if(!state.cured){ beep(160,.15,'sawtooth'); toast(T('doorNeedCure')); return; }
+  if(!state.blackout){ beep(160,.15,'sawtooth'); toast(T('doorNeedPower')); return; }
   if(!state.hasCard){ beep(160,.15,'sawtooth'); toast(T('doorNeedCard')); return; }
   beep(520,.09); setTimeout(()=>beep(780,.14),110);
-  state.doorOpen=true; objective('obj3'); winGame();
+  state.doorOpen=true; state.countdown=null; $('timer').style.color=''; objective('obj4'); winGame();
 }
 
 /* ---- PERIODIC TABLE (north wall, east) ---- */
@@ -607,13 +664,13 @@ function tryDoor(){
 /* ---- TABLE + CLIPBOARD (west-center) ---- */
 const tableGroup=new THREE.Group(); tableGroup.position.set(-2.6,0,0.6); scene.add(tableGroup);
 {
-  const top=new THREE.Mesh(new RoundedBoxGeometry(2.8,.08,1.0,2,.02),matBench);
+  const top=new THREE.Mesh(new RoundedBoxGeometry(3.8,.08,1.0,2,.02),matBench);
   top.position.set(.3,.76,0); top.castShadow=top.receiveShadow=true; tableGroup.add(top);
-  [[-1.02,-.42],[1.62,-.42],[-1.02,.42],[1.62,.42]].forEach(([x,z])=>{
+  [[-1.45,-.42],[2.05,-.42],[-1.45,.42],[2.05,.42]].forEach(([x,z])=>{
     const l=new THREE.Mesh(new THREE.BoxGeometry(.08,.76,.08),matFrame);
     l.position.set(x,.38,z); l.castShadow=true; tableGroup.add(l); });
   const board=new THREE.Mesh(new THREE.BoxGeometry(.5,.02,.82),matFrame);
-  board.position.set(-.85,.81,0); board.rotation.y=.25; tableGroup.add(board);
+  board.position.set(-1.2,.81,0); board.rotation.y=.25; tableGroup.add(board);
   const clipT=dynCanvasTex(256,512,(g,w,h)=>{ g.fillStyle='#f5edd6'; g.fillRect(0,0,w,h);
     g.fillStyle='#2b2113'; g.font='bold 17px sans-serif'; g.textAlign='center';
     g.fillText(T('clipCanvasTitle'),w/2,28); g.font='11px sans-serif';
@@ -621,15 +678,15 @@ const tableGroup=new THREE.Group(); tableGroup.position.set(-2.6,0,0.6); scene.a
       g.font='bold 18px sans-serif'; g.fillText('→ V-'+virusCode(s.virus),w/2,80+i*56); g.font='11px sans-serif'; }); });
   const paper=new THREE.Mesh(new THREE.PlaneGeometry(.44,.74),
     new THREE.MeshStandardMaterial({map:clipT,roughness:.8}));
-  paper.rotation.x=-Math.PI/2; paper.rotation.z=.25; paper.position.set(-.85,.825,0); tableGroup.add(paper);
+  paper.rotation.x=-Math.PI/2; paper.rotation.z=.25; paper.position.set(-1.2,.825,0); tableGroup.add(paper);
   const clip=new THREE.Mesh(new THREE.BoxGeometry(.12,.02,.04),matMetal);
-  clip.position.set(-.85,.83,-.38); clip.rotation.y=.25; tableGroup.add(clip);
+  clip.position.set(-1.2,.83,-.38); clip.rotation.y=.25; tableGroup.add(clip);
   findGroup(tableGroup).forEach(m=>{ if(!m.userData.iid) reg(m,'clipboard','clipLbl',openDiag); });
   reg(paper,'clipboard','clipLbl',openDiag);
   reg(board,'clipboard','clipLbl',openDiag);
   reg(clip,'clipboard','clipLbl',openDiag);
   // microscope (examine capsules under it)
-  const micro=new THREE.Group(); micro.position.set(-.2,.8,0); tableGroup.add(micro);
+  const micro=new THREE.Group(); micro.position.set(-.45,.8,0); tableGroup.add(micro);
   const mbase=new THREE.Mesh(new THREE.BoxGeometry(.28,.04,.22),matFrame);
   mbase.position.y=.02; mbase.castShadow=true; micro.add(mbase);
   const marm=new THREE.Mesh(new THREE.BoxGeometry(.06,.42,.06),matMetal);
@@ -648,7 +705,7 @@ const tableGroup=new THREE.Group(); tableGroup.position.set(-2.6,0,0.6); scene.a
   findGroup(micro).forEach(m=>reg(m,'micro','microLbl',()=>{ beep(600,.06); toast(T('microHint')); }));
   // capsule tray: EVERY element used by any strain (player must know which are theirs)
   const trayBase=new THREE.Mesh(new THREE.BoxGeometry(1.35,.04,.5),matFrame);
-  trayBase.position.set(.98,.82,0); trayBase.castShadow=true; tableGroup.add(trayBase);
+  trayBase.position.set(.29,.82,0); trayBase.castShadow=true; tableGroup.add(trayBase);
   ['Na','C','O','Fe','Ne','He','Li','Co','Mg','Ar','H','N','Ni','K'].forEach((sym,ci)=>{
     const cg=new THREE.Group();
     const cbody=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.1,10),
@@ -662,16 +719,39 @@ const tableGroup=new THREE.Group(); tableGroup.position.set(-2.6,0,0.6); scene.a
     const slab=new THREE.Mesh(new THREE.PlaneGeometry(.11,.055),
       new THREE.MeshBasicMaterial({map:symT,side:THREE.DoubleSide}));
     slab.position.set(0,.07,0); slab.rotation.x=-.35; cg.add(slab);
-    cg.position.set(.42+(ci%7)*.18,.865,(ci<7?-.13:.13)); tableGroup.add(cg);
+    cg.position.set(-.25+(ci%7)*.18,.865,(ci<7?-.13:.13)); tableGroup.add(cg);
     cg.userData.home=cg.position.clone();
     findGroup(cg).forEach(m=>reg(m,'capsule','capLbl',()=>openDots(sym,cg),sym));
   });
+  // test-tube rack: 6 tubes labeled by pH (the bomb recipe uses pH, not tube order)
+  const tubePH=[...[7,4,11,2],...[3,5,6,8,9,10].sort(()=>Math.random()-.5).slice(0,2)];
+  const tubeSlots=[...tubePH].sort(()=>Math.random()-.5);
+  const phCol=ph=>ph<5?0xe2574c:(ph<=8?0x46b978:0x8b7ff0);
+  const rackBase=new THREE.Mesh(new THREE.BoxGeometry(.7,.04,.5),matFrame);
+  rackBase.position.set(1.85,.82,0); rackBase.castShadow=true; tableGroup.add(rackBase);
+  tubeSlots.forEach((ph,i)=>{
+    const tg=new THREE.Group();
+    const glass=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,.24,10),
+      new THREE.MeshPhysicalMaterial({color:0xcfeeff,transparent:true,opacity:.3,roughness:.06,clearcoat:1}));
+    glass.position.y=.12; tg.add(glass);
+    const fluid=new THREE.Mesh(new THREE.CylinderGeometry(.033,.033,.12,10),
+      new THREE.MeshStandardMaterial({color:phCol(ph),roughness:.4,emissive:phCol(ph),emissiveIntensity:.25}));
+    fluid.position.y=.07; tg.add(fluid);
+    const phT=canvasTex(96,48,(g,w,h)=>{ g.fillStyle='#fff'; g.fillRect(0,0,w,h);
+      g.fillStyle='#111'; g.font='bold 26px sans-serif'; g.textAlign='center'; g.fillText('pH '+ph,w/2,35); });
+    const tag=new THREE.Mesh(new THREE.PlaneGeometry(.13,.065),
+      new THREE.MeshBasicMaterial({map:phT,side:THREE.DoubleSide}));
+    tag.position.set(0,.2,0); tg.add(tag);
+    tg.position.set(1.67+(i%3)*.18,.84,(i<3?-.11:.11)); tableGroup.add(tg);
+    findGroup(tg).forEach(m=>reg(m,'rack','tubesLbl',tryMix));
+  });
+  reg(rackBase,'rack','tubesLbl',tryMix);
 }
 
 /* ---- HEIGHT + WEIGHT STATION (beside table) ---- */
 let screenMesh, screenTex, screenCtx, screenCanvas;
 {
-  const g=new THREE.Group(); g.position.set(-.15,0,0.9); scene.add(g);
+  const g=new THREE.Group(); g.position.set(.15,0,1.1); scene.add(g);
   const plat=new THREE.Mesh(new RoundedBoxGeometry(.7,.06,.7,2,.02),matFrame);
   plat.position.y=.03; plat.castShadow=plat.receiveShadow=true; g.add(plat);
   const pole=new THREE.Mesh(new THREE.BoxGeometry(.08,2.1,.08),matMetal);
@@ -829,7 +909,7 @@ const lockers=[];
     door.position.set(.575,0,0); door.castShadow=true; pivot.add(door);
     const plateT=canvasTex(256,96,(g,w,h)=>{ g.fillStyle='#0b2b36'; g.fillRect(0,0,w,h);
       g.fillStyle='#ffd54a'; g.font='bold 24px sans-serif'; g.textAlign='center';
-      g.fillText(RIDDLES[i].who,w/2,36); g.fillStyle='#fff'; g.font='bold 30px sans-serif'; g.fillText('? 🔒 ?',w/2,74); });
+      g.fillText(RIDDLES[i].who,w/2,36); g.fillStyle='#fff'; g.font='bold 30px sans-serif'; g.fillText('🔒 ???',w/2,74); });
     const plate=new THREE.Mesh(new THREE.PlaneGeometry(.8,.3),
       new THREE.MeshBasicMaterial({map:plateT})); plate.position.set(.575,.18,-.035); plate.rotation.y=Math.PI; pivot.add(plate);
     const slot=new THREE.Mesh(new THREE.BoxGeometry(.3,.03,.02),
@@ -841,9 +921,10 @@ const lockers=[];
   }
 }
 function tryLocker(i){
-  const junk=T('junk')[i%T('junk').length];
-  if(lockers[i].opened){ toast(i===cardLocker?(state.hasCard?T('lockerEmptyCard'):T('lockerTakeCard')):T('lockerJunkOnly',RIDDLES[i].who,junk)); return; }
-  openRiddle(i);
+  if(i===cardLocker&&lockers[i].opened){ toast(state.hasCard?T('lockerEmptyCard'):T('lockerTakeCard')); return; }
+  if(!state.hasKey){ beep(180,.15,'square',.06); toast(T('lockerLocked')); return; }
+  if(i===cardLocker){ openLocker(i); }
+  else { beep(200,.12,'square',.06); toast(T('lockerNoFit')); }
 }
 /* access card hidden in one locker */
 const cardGroup=new THREE.Group();
@@ -857,7 +938,7 @@ const cardGroup=new THREE.Group();
     new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false})); cardGroup.add(hit);
   findGroup(cardGroup).forEach(m=>reg(m,'card','cardLbl',()=>{
     if(state.hasCard) return;
-    state.hasCard=true; cardGroup.visible=false; objective('obj3'); renderInv();
+    state.hasCard=true; cardGroup.visible=false; objective('obj4'); renderInv();
     beep(880,.1); setTimeout(()=>beep(1174,.15),120);
     toast(T('cardToast'));
   }));
@@ -868,8 +949,8 @@ function openLocker(i){
   const tw=setInterval(()=>{ const k=Math.min((performance.now()-t0)/600,1);
     piv.rotation.y=-1.9*k; if(k>=1)clearInterval(tw); },16);
   beep(500,.08); setTimeout(()=>beep(700,.1),120);
-  if(i===cardLocker){ cardGroup.visible=true; toast(T('lockerOpenCard',RIDDLES[i].who)); }
-  else toast(T('lockerJunk',RIDDLES[i].who,T('junk')[i%T('junk').length]));
+  cardGroup.visible=true;
+  toast(T('lockerOpenCard',RIDDLES[i].who));
 }
 
 /* (protocol board removed — steps live in the HUD objectives) */
@@ -1194,20 +1275,77 @@ function onSurgOpen(){
   },1200);
 }
 
+/* ---- OVERLOAD PANEL (east wall) + COAT HANGER (south-west) ---- */
+let panelLamp;
+{
+  const pg=new THREE.Group(); pg.position.set(5.82,0,0.8); scene.add(pg);
+  const pbody=new THREE.Mesh(new RoundedBoxGeometry(.25,1.1,.9,2,.02),
+    new THREE.MeshStandardMaterial({color:0x6b7d8c,roughness:.45,metalness:.55}));
+  pbody.position.y=1.6; pbody.castShadow=true; pg.add(pbody);
+  const warnT=canvasTex(128,64,(g,w,h)=>{ g.fillStyle='#d8a400'; g.fillRect(0,0,w,h);
+    g.fillStyle='#111'; g.font='bold 40px sans-serif'; g.textAlign='center'; g.fillText('⚡',w/2,48); });
+  const warn=new THREE.Mesh(new THREE.PlaneGeometry(.3,.15),
+    new THREE.MeshBasicMaterial({map:warnT})); warn.position.set(-.13,1.85,0); warn.rotation.y=-Math.PI/2; pg.add(warn);
+  [-.2,0,.2].forEach(z=>{
+    const cable=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,1.0,8),
+      new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:.8}));
+    cable.position.set(0,.55,z); pg.add(cable); });
+  panelLamp=new THREE.Mesh(new THREE.SphereGeometry(.04,10,8),
+    new THREE.MeshStandardMaterial({color:0x330000,emissive:0xff2222,emissiveIntensity:.8}));
+  panelLamp.position.set(-.14,1.35,.3); pg.add(panelLamp);
+  findGroup(pg).forEach(m=>reg(m,'panel','panelLbl',tryPanel));
+}
+let coatKeyMesh;
+{
+  const hg=new THREE.Group(); hg.position.set(-3.6,0,4.9); scene.add(hg);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,2.0,10),matFrame);
+  pole.position.y=1.0; pole.castShadow=true; hg.add(pole);
+  const foot=new THREE.Mesh(new THREE.CylinderGeometry(.25,.3,.05,14),matFrame);
+  foot.position.y=.025; hg.add(foot);
+  const coat=new THREE.Mesh(new RoundedBoxGeometry(.5,.85,.16,2,.05),
+    new THREE.MeshStandardMaterial({color:0xeef1f4,roughness:.85}));
+  coat.position.y=1.35; coat.castShadow=true; hg.add(coat);
+  [[-.3],[.3]].forEach(([x])=>{
+    const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,.6,8),
+      new THREE.MeshStandardMaterial({color:0xe4e9ed,roughness:.85}));
+    sleeve.position.set(x,1.3,0); sleeve.rotation.z=x>0?-.15:.15; hg.add(sleeve); });
+  coatKeyMesh=new THREE.Group();
+  const bow=new THREE.Mesh(new THREE.TorusGeometry(.035,.012,8,16),matGold); coatKeyMesh.add(bow);
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.01,.01,.09,6),matGold);
+  shaft.position.y=-.06; coatKeyMesh.add(shaft);
+  coatKeyMesh.position.set(.1,1.15,.1); coatKeyMesh.rotation.y=.4; hg.add(coatKeyMesh);
+  findGroup(hg).forEach(m=>reg(m,'coat','coatLbl',tryCoat));
+}
+function tryCoat(){
+  if(state.hasKey){ toast(T('coatEmpty')); return; }
+  state.hasKey=true; coatKeyMesh.visible=false; renderInv();
+  beep(880,.1); setTimeout(()=>beep(1174,.15),120);
+  toast(T('keyToast'));
+}
+function tryPanel(){
+  if(state.blackout){ toast(T('panelFried')); return; }
+  if(!state.hasBomb){ beep(180,.15,'square',.06); toast(T('pourNeed')); return; }
+  state.hasBomb=false; state.blackout=true; state.countdown=60; state.lastTick=60;
+  panelLamp.material.emissive.setHex(0x22ff44);
+  objective('obj3'); renderInv();
+  beep(220,.3,'sawtooth',.15); setTimeout(()=>beep(140,.4,'sawtooth',.15),250);
+  ceilLight.intensity=8; setTimeout(()=>{ if(!state.won&&!state.dead)ceilLight.intensity=22; },900);
+  toast(T('pourGo'),3600);
+}
+
 /* ================= MODAL SYSTEM ================= */
 const modal=$('modal'),modalCard=$('modalCard'),modalTitle=$('modalTitle'),modalText=$('modalText'),
       keypadUI=$('keypadUI'),keypadDisplay=$('keypadDisplay'),keypadGrid=$('keypadGrid'),
       diagUI=$('diagUI'),diagTable=$('diagTable'),diagBtns=$('diagBtns'),
-      riddleUI=$('riddleUI'),riddleQ=$('riddleQ'),riddleA=$('riddleA'),riddleGo=$('riddleGo'),
-      riddleHintBtn=$('riddleHintBtn'),riddleHint=$('riddleHint'),
+      mixUI=$('mixUI'),mixInstr=$('mixInstr'),mixTubes=$('mixTubes'),mixProg=$('mixProg'),mixAct=$('mixAct'),
       ptUI=$('ptUI'),ptGrid=$('ptGrid');
 function hidePanels(){ modalText.style.display='none'; keypadUI.classList.add('hidden');
-  diagUI.classList.add('hidden'); riddleUI.classList.add('hidden'); ptUI.classList.add('hidden');
+  diagUI.classList.add('hidden'); mixUI.classList.add('hidden'); ptUI.classList.add('hidden');
   modalCard.classList.remove('wide'); }
 function showNote(title,text){ modal.classList.add('open'); modalCard.classList.remove('dark');
   modalTitle.textContent=title; modalText.textContent=text; modalText.style.display='block';
   keypadUI.classList.add('hidden'); diagUI.classList.add('hidden');
-  riddleUI.classList.add('hidden'); ptUI.classList.add('hidden'); exitPointer(); }
+  mixUI.classList.add('hidden'); ptUI.classList.add('hidden'); exitPointer(); }
 /* generic keypad */
 let padCtx=null, keypadEntry='';
 function openKeypad(title,correct,onOk,wrongMsg){
@@ -1268,26 +1406,42 @@ function openDiag(){
     };
     diagBtns.appendChild(b); });
 }
-/* riddles */
-let riddleIdx=-1;
-function openRiddle(i){
-  riddleIdx=i; modal.classList.add('open'); modalCard.classList.add('dark');
-  modalTitle.textContent=T('riddleTitle',RIDDLES[i].who); hidePanels();
-  modalText.style.display='none'; riddleUI.classList.remove('hidden'); exitPointer();
-  riddleQ.textContent='“'+RIDDLES[i].q[LANG]+'”'; riddleA.value=''; riddleA.placeholder=T('inputPh');
-  riddleHint.textContent=''; riddleHint.style.display='none';
-  riddleHintBtn.textContent=T('riddleHintBtn'); riddleHintBtn.style.display='block';
-  setTimeout(()=>riddleA.focus(),50);
+/* mixing bench: recipe uses pH values, NOT tube positions */
+function tryMix(){
+  if(state.hasBomb||state.blackout){ toast(T('mixEmpty')); return; }
+  if(!state.cured){ beep(180,.15,'square',.06); toast(T('mixWeak')); return; }
+  modal.classList.add('open'); modalCard.classList.add('dark');
+  modalTitle.textContent=T('mixTitle'); hidePanels();
+  modalText.style.display='none'; mixUI.classList.remove('hidden'); exitPointer();
+  renderMix();
 }
-riddleHintBtn.onclick=()=>{ riddleHint.textContent=RIDDLES[riddleIdx].h[LANG];
-  riddleHint.style.display='block'; riddleHintBtn.style.display='none'; beep(600,.06); };
-riddleGo.onclick=()=>{
-  const got=riddleA.value.trim().toLowerCase().replace(/\s+/g,'');
-  const ok=RIDDLES[riddleIdx].a.some(a=>a.toLowerCase().replace(/\s+/g,'')===got);
-  if(ok){ const i=riddleIdx; closeModal(); openLocker(i); lockPointer(); }
-  else { beep(150,.2,'sawtooth',.12); toast(T('riddleWrong')); }
+function renderMix(){
+  mixInstr.textContent=T('mixInstr');
+  mixTubes.innerHTML='';
+  tubeSlots.forEach((ph,i)=>{
+    const b=document.createElement('button'); b.textContent='pH '+ph+(state.mixAdded.includes(ph)?' ✓':'');
+    b.disabled=state.mixAdded.includes(ph);
+    b.onclick=()=>tubeClick(i); mixTubes.appendChild(b); });
+  mixProg.textContent=state.mixAdded.length?('Beaker: '+state.mixAdded.join(' + ')):T('mixBeakerEmpty');
+  const acts={2:'actStir',4:'actShake',6:'actBurn',7:'actMix'};
+  if(acts[state.mixStage]){ mixAct.textContent=T(acts[state.mixStage]); mixAct.classList.remove('hidden'); }
+  else mixAct.classList.add('hidden');
+}
+function tubeClick(i){
+  const ph=tubeSlots[i], need={0:7,1:4,3:11,5:2}[state.mixStage];
+  if(need===undefined||state.mixAdded.includes(ph)) return;
+  if(ph===need){ state.mixAdded.push(ph); state.mixStage++; beep(700,.07);
+    toast(T('mixAdded',ph)); renderMix();
+  } else { state.mixAdded=[]; state.mixStage=0; beep(150,.25,'sawtooth',.15);
+    toast(T('mixWrong')); renderMix(); }
+}
+mixAct.onclick=()=>{
+  if(state.mixStage===7){
+    state.hasBomb=true; state.mixStage=0; state.mixAdded=[];
+    closeModal(); renderInv(); beep(660,.1); setTimeout(()=>beep(990,.15),130);
+    toast(T('mixBuilt'),3200); lockPointer();
+  } else if([2,4,6].includes(state.mixStage)){ state.mixStage++; beep(600,.07); renderMix(); }
 };
-riddleA.addEventListener('keydown',e=>{ if(e.key==='Enter')riddleGo.onclick(); e.stopPropagation(); });
 /* periodic table study view */
 function openPT(){
   modal.classList.add('open'); modalCard.classList.remove('dark'); modalCard.classList.add('wide');
@@ -1312,6 +1466,8 @@ function renderInv(){
     ['📏',state.measured?(ME.h+'/'+ME.w):'???',state.measured,T('invReading')],
     ['🧬',state.diagnosed||'???',!!state.diagnosed,T('invVirus')],
     ['💉',state.cured?T('curedTag'):'???',state.cured,T('invCure')],
+    ['💣',state.hasBomb?'✓':'???',state.hasBomb,T('invBomb')],
+    ['🔑',state.hasKey?'✓':'???',state.hasKey,T('invKey')],
     ['🪪',state.hasCard?'✓':'???',state.hasCard,T('invCard')],
   ];
   items.forEach(([ico,txt,has,name])=>{ const d=document.createElement('div');
@@ -1329,7 +1485,7 @@ addEventListener('keydown',e=>{ if(state.scopeOpen){ if(e.code==='KeyE')closeSco
   if(e.code==='KeyE')doInteract();
   if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault(); });
 addEventListener('keyup',e=>state.keys[e.code]=false);
-document.addEventListener('mousemove',e=>{ if(!state.locked||!state.playing||state.won)return;
+document.addEventListener('mousemove',e=>{ if(!state.locked||!state.playing||state.won||state.dead)return;
   state.yaw-=e.movementX*.0023; state.pitch-=e.movementY*.0023;
   state.pitch=Math.max(-1.45,Math.min(1.45,state.pitch)); });
 renderer.domElement.addEventListener('click',()=>{ if(state.playing&&!modal.classList.contains('open'))doInteract(); });
@@ -1337,23 +1493,25 @@ function lockPointer(){ renderer.domElement.requestPointerLock?.(); }
 function exitPointer(){ document.exitPointerLock?.(); }
 document.addEventListener('pointerlockchange',()=>{
   state.locked=document.pointerLockElement===renderer.domElement;
-  if(!state.locked&&state.playing&&!state.won&&!modal.classList.contains('open'))$('pauseScreen').classList.remove('hidden');
+  if(!state.locked&&state.playing&&!state.won&&!state.dead&&!modal.classList.contains('open'))$('pauseScreen').classList.remove('hidden');
   else $('pauseScreen').classList.add('hidden');
 });
 $('startBtn').onclick=()=>{ $('startScreen').classList.add('hidden'); startGame(); };
 $('resumeBtn').onclick=()=>{ $('pauseScreen').classList.add('hidden'); lockPointer(); };
 $('restartBtn').onclick=()=>location.reload();
 $('restartBtn2').onclick=()=>location.reload();
+$('retryBtn').onclick=()=>location.reload();
 function startGame(){ state.playing=true; state.startTime=performance.now(); lockPointer();
   beep(440,.1); }
 function fmt(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
 
 /* ================= COLLISION (per room) ================= */
 const solidsLab=[
-  {x:-3.5,z:.6,r:1.0},{x:-1.1,z:.6,r:1.0},{x:-.15,z:.9,r:.6},{x:5.5,z:-3.2,r:1.1},
+  {x:-3.9,z:.6,r:1.0},{x:-2.3,z:.6,r:1.0},{x:-.6,z:.6,r:.9},{x:.15,z:1.1,r:.6},{x:5.5,z:-3.2,r:1.1},
   {x:-1.2,z:5.55,r:1.3},{x:1.2,z:5.55,r:1.3},
   {x:-.4,z:-5.5,r:1.1},{x:-5.55,z:3.0,r:1.1},{x:4.93,z:4.9,r:.65},
   {x:4.3,z:-1.4,r:.45},{x:-3.7,z:1.9,r:.35},{x:-1.3,z:2.1,r:.35},
+  {x:5.7,z:.8,r:.6},{x:-3.6,z:4.9,r:.4},
 ];
 const solidsSurg=[
   {x:-32,z:-2,r:1.15},{x:-28,z:-2,r:1.15},{x:-33.5,z:2.5,r:.35},{x:-26.5,z:2.8,r:.45},
@@ -1409,9 +1567,16 @@ const clock=new THREE.Clock();
 function loop(){
   requestAnimationFrame(loop);
   const dt=Math.min(clock.getDelta(),.05);
-  if(state.playing&&!state.won){
+  if(state.playing&&!state.won&&!state.dead){
     state.elapsed=performance.now()-state.startTime;
-    $('timer').textContent=fmt(state.elapsed);
+    if(state.countdown!=null){
+      state.countdown-=dt;
+      const t=Math.max(0,state.countdown), secs=Math.ceil(t);
+      $('timer').textContent='0:'+String(secs).padStart(2,'0');
+      $('timer').style.color='#ff5b5b';
+      if(t<=10&&secs<state.lastTick){ state.lastTick=secs; beep(880,.06); }
+      if(state.countdown<=0){ explode(); return; }
+    } else $('timer').textContent=fmt(state.elapsed);
     const frozen=state.scopeOpen?0:1;
     const f=((state.keys.KeyW||state.keys.ArrowUp?1:0)-(state.keys.KeyS||state.keys.ArrowDown?1:0))*frozen;
     const s=((state.keys.KeyD||state.keys.ArrowRight?1:0)-(state.keys.KeyA||state.keys.ArrowLeft?1:0))*frozen;
@@ -1447,8 +1612,14 @@ addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
 applyCam(); loop();
 
+function explode(){
+  if(state.won||state.dead) return; state.dead=true; state.playing=false; exitPointer();
+  beep(110,.7,'sawtooth',.2); setTimeout(()=>beep(70,1.0,'sawtooth',.2),200);
+  $('deadH').textContent=T('deadH'); $('deadP').textContent=T('deadP'); $('retryBtn').textContent=T('retryBtn');
+  setTimeout(()=>$('deadScreen').classList.remove('hidden'),1200);
+}
 function winGame(){
-  state.won=true; exitPointer();
+  state.won=true; state.countdown=null; exitPointer();
   $('winStats').textContent=T('winStats',fmt(state.elapsed),ME.virus,dotsCode(ME.virus));
   $('epilogue').innerHTML=T('winEpi',ME.virus,ME.h,ME.w);
   $('journalScore').textContent=T('winScore',ME.id,ME.h,ME.w,ME.virus,dotsCode(ME.virus),RIDDLES[cardLocker].who);
