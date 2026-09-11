@@ -1817,6 +1817,13 @@ function updateHover(){
       let o=cand, hidden=false;
       while(o){ if(o.visible===false){ hidden=true; break; } o=o.parent; }
       if(hidden)continue;
+      // the tube in your hand must not block the crosshair ray
+      if(state.carried!=null&&tubeObjs[state.carried]){
+        const cg=tubeObjs[state.carried].group;
+        let p=cand, self=false;
+        while(p){ if(p===cg){ self=true; break; } p=p.parent; }
+        if(self)continue;
+      }
       if(cit.id==='vial'&&!state.fridgeOpen)continue;
       if(cit.id==='card'&&!cardGroup.visible)continue;
       if(cit.id==='card'||cit.id==='vial'){ it=cit; m=cand; break; }
