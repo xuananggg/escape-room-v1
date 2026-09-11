@@ -1467,7 +1467,10 @@ function tallyMarks(n){
 }
 function openBody(){
   beep(500,.07);
-  const lines=scrMarks.map(s=>PARTS[s.part].n[LANG]+':\n'+tallyMarks(s.count)).join('\n\n');
+  // shuffle display order every viewing: this page yields only the digits,
+  // the sequence must come from the poster (scrMarks stays poster-sorted for the code)
+  const shown=[...scrMarks].sort(()=>Math.random()-.5);
+  const lines=shown.map(s=>PARTS[s.part].n[LANG]+':\n'+tallyMarks(s.count)).join('\n\n');
   showNote(T('bodyTitle'),T('bodyIntro')+'\n\n'+lines+'\n\n'+T('bodyHint'));
 }
 function openPoster(){
