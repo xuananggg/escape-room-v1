@@ -87,10 +87,16 @@
   #notesBtn { pointer-events:auto; cursor:pointer; margin-top:8px; width:100%; background:#1c2347;
     border:1px solid #3a4672; color:#ffd54a; border-radius:10px; padding:7px 10px; font-size:12px; font-weight:700; }
   #notesBtn:hover { background:#263060; }
-  #noteDraw { width:100%; border-radius:8px; border:1px solid #b9a86a; cursor:crosshair;
+  #pinNotes { position:fixed; right:14px; top:50%; transform:translateY(-50%); z-index:55;
+    width:302px; background:#f5edd6; border:1px solid #b9a86a; border-radius:14px;
+    padding:14px; box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  #pinHead { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;
+    color:#2b2113; font-size:15px; font-weight:800; }
+  #pinX { background:none; border:none; font-size:18px; cursor:pointer; color:#2b2113; }
+  #pinDraw { width:100%; border-radius:8px; border:1px solid #b9a86a; cursor:crosshair;
     touch-action:none; user-select:none; -webkit-user-select:none;
     background:repeating-linear-gradient(#fbf6e6 0 25px, #e0d3ac 25px 26px); }
-  #noteClear { margin-top:8px; width:100%; padding:9px; font-size:13px; font-weight:700; border-radius:10px;
+  #pinClear { margin-top:8px; width:100%; padding:9px; font-size:13px; font-weight:700; border-radius:10px;
     border:1px solid #6b5d1f; background:transparent; color:#6b5d1f; cursor:pointer; }
   #diagTable table { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0; }
   #diagTable th, #diagTable td { border:1px solid #b9a86a; padding:6px 8px; text-align:center; }
@@ -168,6 +174,11 @@
 <div id="crosshair"></div>
 <div id="prompt"></div>
 <div id="toast"></div>
+<div id="pinNotes" class="hidden">
+  <div id="pinHead"><span id="pinTitle">📝 Field notes</span><button id="pinX">✕</button></div>
+  <canvas id="pinDraw" width="360" height="240"></canvas>
+  <button id="pinClear">Clear page</button>
+</div>
 <div id="flash"></div>
 <div id="vignette"></div>
 <div id="scopeOverlay">
@@ -232,10 +243,6 @@
       <div id="diagBtns"></div>
     </div>
     <div id="ptUI" class="hidden"><div id="ptGrid"></div></div>
-    <div id="notesUI" class="hidden">
-      <canvas id="noteDraw" width="400" height="260"></canvas>
-      <button id="noteClear">Clear page</button>
-    </div>
   </div>
 </div>
 
@@ -1590,49 +1597,54 @@ function tryPanel(){
 const modal=$('modal'),modalCard=$('modalCard'),modalTitle=$('modalTitle'),modalText=$('modalText'),
       keypadUI=$('keypadUI'),keypadDisplay=$('keypadDisplay'),keypadGrid=$('keypadGrid'),
       diagUI=$('diagUI'),diagTable=$('diagTable'),diagBtns=$('diagBtns'),
-      ptUI=$('ptUI'),ptGrid=$('ptGrid'),
-      notesUI=$('notesUI'),noteDraw=$('noteDraw'),noteClear=$('noteClear');
+      ptUI=$('ptUI'),ptGrid=$('ptGrid');
 function hidePanels(){ modalText.style.display='none'; keypadUI.classList.add('hidden');
-  diagUI.classList.add('hidden'); ptUI.classList.add('hidden'); notesUI.classList.add('hidden');
+  diagUI.classList.add('hidden'); ptUI.classList.add('hidden');
   modalCard.classList.remove('wide'); }
 function showNote(title,text){ modal.classList.add('open'); modalCard.classList.remove('dark');
   modalTitle.textContent=title; modalText.textContent=text; modalText.style.display='block';
   keypadUI.classList.add('hidden'); diagUI.classList.add('hidden');
-  ptUI.classList.add('hidden'); notesUI.classList.add('hidden'); exitPointer(); }
-function openNotes(){
-  modal.classList.add('open'); modalCard.classList.remove('dark');
-  modalTitle.textContent=T('notesTitle'); hidePanels();
-  modalText.style.display='none'; notesUI.classList.remove('hidden'); exitPointer();
-  noteClear.textContent=T('notesClear');
-  const g=noteDraw.getContext('2d');
-  g.clearRect(0,0,noteDraw.width,noteDraw.height);
-  try{ const img=new Image();
-    img.onload=()=>g.drawImage(img,0,0);
-    img.src=localStorage.getItem('subject07-notes')||'';
-    if(!img.src) throw 0;
-  }catch(e){}
+  ptUI.classList.add('hidden'); exitPointer(); }
+/* pinned sketch pad: lives beside info modals, toggled with N / NOTES button */
+const pinNotes=$('pinNotes'),pinDraw=$('pinDraw'),pinClear=$('pinClear'),pinTitle=$('pinTitle');
+function pinOpen(){ return !pinNotes.classList.contains('hidden'); }
+function togglePin(){
+  if(pinOpen()){ pinNotes.classList.add('hidden');
+    if(state.playing&&!state.won&&!state.dead&&!modal.classList.contains('open')&&!state.scopeOpen)lockPointer();
+  } else {
+    pinTitle.textContent=T('notesTitle'); pinClear.textContent=T('notesClear');
+    const g=pinDraw.getContext('2d');
+    g.clearRect(0,0,pinDraw.width,pinDraw.height);
+    try{ const img=new Image();
+      img.onload=()=>g.drawImage(img,0,0,pinDraw.width,pinDraw.height);
+      const s=localStorage.getItem('subject07-notes')||'';
+      if(s)img.src=s;
+    }catch(e){}
+    pinNotes.classList.remove('hidden'); exitPointer();
+  }
 }
-function saveNotes(){ try{ localStorage.setItem('subject07-notes',noteDraw.toDataURL()); }catch(e){} }
-noteClear.onclick=()=>{ noteDraw.getContext('2d').clearRect(0,0,noteDraw.width,noteDraw.height); saveNotes(); };
+function saveNotes(){ try{ localStorage.setItem('subject07-notes',pinDraw.toDataURL()); }catch(e){} }
+pinClear.onclick=()=>{ pinDraw.getContext('2d').clearRect(0,0,pinDraw.width,pinDraw.height); saveNotes(); };
+$('pinX').onclick=togglePin;
 {
   let drawing=false, lx=0, ly=0;
-  const pos=e=>{ const r=noteDraw.getBoundingClientRect();
-    return [(e.clientX-r.left)*noteDraw.width/r.width,(e.clientY-r.top)*noteDraw.height/r.height]; };
-  noteDraw.addEventListener('pointerdown',e=>{ e.preventDefault(); drawing=true;
+  const pos=e=>{ const r=pinDraw.getBoundingClientRect();
+    return [(e.clientX-r.left)*pinDraw.width/r.width,(e.clientY-r.top)*pinDraw.height/r.height]; };
+  pinDraw.addEventListener('pointerdown',e=>{ e.preventDefault(); drawing=true;
     const [x,y]=pos(e); lx=x; ly=y;
-    const g=noteDraw.getContext('2d');
+    const g=pinDraw.getContext('2d');
     g.fillStyle='#2b2113'; g.beginPath(); g.arc(x,y,1.8,0,Math.PI*2); g.fill();
-    try{ noteDraw.setPointerCapture(e.pointerId); }catch(err){} });
-  noteDraw.addEventListener('pointermove',e=>{ if(!drawing)return;
+    try{ pinDraw.setPointerCapture(e.pointerId); }catch(err){} });
+  pinDraw.addEventListener('pointermove',e=>{ if(!drawing)return;
     e.preventDefault();
-    const [x,y]=pos(e), g=noteDraw.getContext('2d');
+    const [x,y]=pos(e), g=pinDraw.getContext('2d');
     g.strokeStyle='#2b2113'; g.lineWidth=3.5; g.lineCap='round'; g.lineJoin='round';
     g.beginPath(); g.moveTo(lx,ly); g.lineTo(x,y); g.stroke(); lx=x; ly=y; });
   const stop=()=>{ if(drawing){ drawing=false; saveNotes(); } };
-  noteDraw.addEventListener('pointerup',stop);
-  noteDraw.addEventListener('pointercancel',stop);
+  pinDraw.addEventListener('pointerup',stop);
+  pinDraw.addEventListener('pointercancel',stop);
 }
-$('notesBtn').onclick=()=>{ if(state.playing&&!state.won&&!state.dead)openNotes(); };
+$('notesBtn').onclick=()=>{ if(state.playing&&!state.won&&!state.dead)togglePin(); };
 /* generic keypad */
 let padCtx=null, keypadEntry='';
 function openKeypad(title,correct,onOk,wrongMsg){
@@ -1810,10 +1822,10 @@ renderInv();
 
 /* ================= CONTROLS ================= */
 const promptEl=$('prompt'),cross=$('crosshair');
-addEventListener('keydown',e=>{ if(state.scopeOpen){ if(e.code==='KeyE')closeScope(); return; }
+addEventListener('keydown',e=>{ if(e.code==='KeyN'){ if(state.playing&&!state.won&&!state.dead&&!state.scopeOpen)togglePin(); return; }
+  if(state.scopeOpen){ if(e.code==='KeyE')closeScope(); return; }
   if(modal.classList.contains('open'))return; // don't walk/type-hit while reading
   if(e.code==='KeyX'){ putBack(); return; }
-  if(e.code==='KeyN'){ if(state.playing&&!modal.classList.contains('open')&&!state.scopeOpen)openNotes(); return; }
   state.keys[e.code]=true;
   if(e.code==='KeyE')doInteract();
   if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault(); });
