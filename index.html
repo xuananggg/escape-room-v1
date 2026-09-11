@@ -108,6 +108,8 @@
   #mixProg { font-size:13px; font-weight:700; min-height:20px; }
   #mixAct { margin-top:10px; width:100%; padding:12px; font-size:15px; font-weight:800; border-radius:10px;
     border:none; background:#ffd54a; color:#111; cursor:pointer; }
+  #mixAct:not(.hidden) { animation:pulseB 1s infinite; }
+  @keyframes pulseB { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
   #dotsCap { font-size:14px; margin:6px 0; }
   #dotsCv { width:100%; border-radius:10px; background:#062b38; }
   #scopeOverlay { position:fixed; inset:0; z-index:70; display:none; align-items:center;
@@ -353,7 +355,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   coatLbl:'lab coat — search the pockets', keyToast:'Locker key acquired!', coatEmpty:'Pockets empty.',
   tubesLbl:'test-tube rack — mix a batch',
   mixTitle:'⚗️ Mixing bench — liquid bomb',
-  mixInstr:'Ward mixer protocol:\nMIX 7 with 4 — then STIR well.\nSHAKE 11. BURN 2.\nThen MIX ALL together.\n\n(The numbers are pH levels — not tube numbers.)',
+  mixInstr:'Ward mixer protocol:\nMIX 7 with 4 — then STIR well.\nSHAKE 11. BURN 2.\nThen MIX ALL together.\n\n(The numbers are pH levels — not tube numbers.)\nSteps: 1) TEST every tube at the pH meter. 2) ADD tubes in recipe order. 3) Press STIR / SHAKE / BURN when the button lights up.',
   mixBeakerEmpty:'Beaker: empty',
   mixBeaker:list=>'Beaker: '+list,
   mixAdded:ph=>'Added pH '+ph+'.',
@@ -458,7 +460,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   coatLbl:'白大褂——翻口袋', keyToast:'获得储物柜钥匙！', coatEmpty:'口袋空了。',
   tubesLbl:'试管架——混合药剂',
   mixTitle:'⚗️ 混合台——液体炸弹',
-  mixInstr:'混合协议：\n将 7 与 4 混合——然后充分搅拌。\n摇晃 11。加热 2。\n最后全部混合。\n\n（数字是pH值——不是试管编号。）',
+  mixInstr:'混合协议：\n将 7 与 4 混合——然后充分搅拌。\n摇晃 11。加热 2。\n最后全部混合。\n\n（数字是pH值——不是试管编号。）\n步骤：1）在pH计上测试所有试管。2）按配方顺序加入。3）按钮亮起时按下搅拌/摇晃/加热。',
   mixBeakerEmpty:'烧杯：空',
   mixBeaker:list=>'烧杯：'+list,
   mixAdded:ph=>'已加入 pH '+ph+'。',
@@ -749,8 +751,9 @@ const tableGroup=new THREE.Group(); tableGroup.position.set(2.4,0,-4.0); scene.a
 
 /* ---- BOMB BENCH: test-tube rack + pH meter + burner + mixing beaker (west wall) ---- */
 const tubeTable=new THREE.Group(); tubeTable.position.set(-5.2,0,0.6); scene.add(tubeTable);
-let meterCtx, meterTex, beakerLiq, stirRod, flameM, flameLight;
-let stirT=0, burnT=0;
+let meterCtx, meterTex, beakerLiq, stirRod, flameM, flameLight, beakerG, pourStream;
+let bubbles=[];
+let stirT=0, burnT=0, shakeT=0;
 {
   const top=new THREE.Mesh(new RoundedBoxGeometry(1.2,.08,2.4,2,.02),matBench);
   top.position.y=.76; top.castShadow=top.receiveShadow=true; tubeTable.add(top);
@@ -812,6 +815,17 @@ let stirT=0, burnT=0;
   const beaker=new THREE.Mesh(new THREE.CylinderGeometry(.09,.08,.22,16,1,true),
     new THREE.MeshPhysicalMaterial({color:0xcfeeff,transparent:true,opacity:.3,roughness:.06,clearcoat:1,side:THREE.DoubleSide}));
   beaker.position.set(-.35,.91,.55); tubeTable.add(beaker);
+  beakerG=beaker;
+  // pour stream (flash-visible while a tube is emptied in)
+  pourStream=new THREE.Mesh(new THREE.CylinderGeometry(.018,.024,.3,8),
+    new THREE.MeshBasicMaterial({color:0x46b978,transparent:true,opacity:.9}));
+  pourStream.position.set(-.35,1.2,.55); pourStream.visible=false; tubeTable.add(pourStream);
+  // fizz bubbles (rise while BURN is active)
+  bubbles=[];
+  for(let bi=0;bi<6;bi++){ const bb=new THREE.Mesh(new THREE.SphereGeometry(.012,6,6),
+    new THREE.MeshBasicMaterial({color:0xd8fff0,transparent:true,opacity:.85}));
+    bb.position.set(-.35+(Math.random()-.5)*.08,.85+Math.random()*.08,.55+(Math.random()-.5)*.08);
+    bb.visible=false; tubeTable.add(bb); bubbles.push(bb); }
   beakerLiq=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,1,14),
     new THREE.MeshStandardMaterial({color:0x46b978,roughness:.35,emissive:0x46b978,emissiveIntensity:.25,transparent:true,opacity:.9}));
   beakerLiq.scale.y=.001; beakerLiq.visible=false; beakerLiq.position.set(-.35,.81,.55); tubeTable.add(beakerLiq);
@@ -1592,19 +1606,30 @@ function tubeClick(i){
   if(need===undefined||state.mixAdded.includes(ph)) return;
   if(!tubeObjs[i]||!tubeObjs[i].tested){ beep(180,.15,'square',.06); toast(T('testFirst')); return; }
   if(ph===need){ state.mixAdded.push(ph); state.mixStage++; beep(700,.07);
-    toast(T('mixAdded',ph)); updateBeaker(); renderMix();
+    toast(T('mixAdded',ph)); updateBeaker(); renderMix(); pourIntoBeaker(ph);
   } else { resetBeaker(); beep(150,.25,'sawtooth',.15);
     toast(T('mixWrong')); renderMix(); }
+}
+/* fading the recipe card so the 3D pour/stir/shake/burn shows through */
+function peek3D(ms){ modalCard.style.transition='opacity .3s'; modalCard.style.opacity='.12';
+  setTimeout(()=>{ modalCard.style.opacity='1'; },ms); }
+function pourIntoBeaker(ph){
+  pourStream.material.color.setHex(phCol(ph));
+  pourStream.visible=true; peek3D(1000);
+  beep(900,.12,'sine',.08); setTimeout(()=>beep(700,.12,'sine',.08),120);
+  setTimeout(()=>{ pourStream.visible=false; },950);
 }
 mixAct.onclick=()=>{
   if(state.mixStage===7){
     state.hasBomb=true; state.mixStage=0; state.mixAdded=[];
     closeModal(); renderInv(); beep(660,.1); setTimeout(()=>beep(990,.15),130);
     toast(T('mixBuilt'),3200); lockPointer();
-  } else if(state.mixStage===2){ state.mixStage++; stirT=1.6; beep(600,.07); renderMix();
-  } else if(state.mixStage===4){ state.mixStage++; beep(600,.07); renderMix();
+  } else if(state.mixStage===2){ state.mixStage++; stirT=1.6; beep(600,.07); renderMix(); peek3D(1500);
+  } else if(state.mixStage===4){ state.mixStage++; shakeT=1.3;
+    beep(500,.08); setTimeout(()=>beep(650,.08),130); setTimeout(()=>beep(800,.1),260);
+    renderMix(); peek3D(1300);
   } else if(state.mixStage===6){ state.mixStage++; burnT=2.5;
-    flameM.visible=true; beep(300,.25,'sawtooth',.12); renderMix(); }
+    flameM.visible=true; beep(300,.25,'sawtooth',.12); renderMix(); peek3D(1400); }
 };
 /* periodic table study view */
 function openPT(){
@@ -1759,13 +1784,25 @@ function loop(){
     if(state.fridgeOpen && !state.cured){ const t=performance.now()*.003;
       vials.forEach((v,i)=>{ v.group.position.y=v.baseY+Math.sin(t+i*1.7)*.02; }); }
     if(state.hasCard===false && cardGroup.visible){ cardGroup.rotation.y=performance.now()*.002; }
-    // bomb-bench FX: stirring rod spin + burner flame flicker
-    if(stirT>0){ stirT-=dt; stirRod.rotation.y+=12*dt; }
+    // bomb-bench FX: stirring swirl + shaking jitter + burner flame + fizz
+    if(stirT>0){ stirT-=dt; stirRod.rotation.y+=12*dt; beakerLiq.rotation.y+=8*dt; }
+    if(shakeT>0){ shakeT-=dt;
+      const jx=(Math.random()-.5)*.035, jz=(Math.random()-.5)*.035;
+      beakerG.position.x=-.35+jx; beakerG.position.z=.55+jz;
+      beakerLiq.position.x=-.35+jx; beakerLiq.position.z=.55+jz;
+      stirRod.position.x=-.35+jx; stirRod.position.z=.55+jz;
+      if(shakeT<=0){ beakerG.position.x=-.35; beakerG.position.z=.55;
+        beakerLiq.position.x=-.35; beakerLiq.position.z=.55;
+        stirRod.position.x=-.35; stirRod.position.z=.55; } }
     if(burnT>0){ burnT-=dt;
       flameM.scale.setScalar(1+Math.sin(performance.now()*.06)*.18);
       flameLight.intensity=2.5+Math.sin(performance.now()*.05)*1.5;
       beakerLiq.material.emissiveIntensity=.4+Math.abs(Math.sin(performance.now()*.02))*.4;
-      if(burnT<=0){ flameM.visible=false; flameLight.intensity=0; beakerLiq.material.emissiveIntensity=.25; } }
+      bubbles.forEach((bb,bi)=>{ bb.visible=true; bb.position.y+=dt*(.22+(bi%3)*.1);
+        if(bb.position.y>1.02){ bb.position.y=.85;
+          bb.position.x=-.35+(Math.random()-.5)*.08; bb.position.z=.55+(Math.random()-.5)*.08; } });
+      if(burnT<=0){ flameM.visible=false; flameLight.intensity=0; beakerLiq.material.emissiveIntensity=.25;
+        bubbles.forEach(bb=>bb.visible=false); } }
   }
   for(let i=tweens.length-1;i>=0;i--){ const tw=tweens[i];
     let k=(performance.now()-tw.t0)/tw.dur; if(k>=1)k=1;
