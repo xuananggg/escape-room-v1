@@ -84,6 +84,12 @@
     border:1px solid #2e3a68; background:#1f2748; color:#fff; cursor:pointer; }
   #keypadGrid button:hover { background:#2b3763; }
   #keypadGrid button.fn { background:#0a2e38; border-color:#1f6d84; color:#4ae3ff; }
+  #notesBtn { pointer-events:auto; cursor:pointer; margin-top:8px; width:100%; background:#1c2347;
+    border:1px solid #3a4672; color:#ffd54a; border-radius:10px; padding:7px 10px; font-size:12px; font-weight:700; }
+  #notesBtn:hover { background:#263060; }
+  #notePad { width:100%; min-height:220px; margin-top:6px; padding:10px 12px; font-size:14px; line-height:26px;
+    border-radius:8px; border:1px solid #b9a86a; resize:vertical;
+    background:repeating-linear-gradient(#fbf6e6 0 25px, #e0d3ac 25px 26px); color:#2b2113; }
   #diagTable table { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0; }
   #diagTable th, #diagTable td { border:1px solid #b9a86a; padding:6px 8px; text-align:center; }
   #diagTable th { background:#e4d5a4; }
@@ -152,7 +158,7 @@
       <div id="obj3">Step 3: Build the bomb and overload the electrics</div>
       <div id="obj4">Step 4: Find the access card and escape in 60 seconds</div>
     </div>
-    <div class="pill">⏱ <span id="timer">00:00</span><br><span id="hudHint" style="font-size:11px;opacity:.7">click objects • <kbd>E</kbd> interact</span></div>
+    <div class="pill">⏱ <span id="timer">00:00</span><br><span id="hudHint" style="font-size:11px;opacity:.7">click objects • <kbd>E</kbd> interact</span><br><button id="notesBtn">📝 NOTES</button></div>
   </div>
   <div id="inventory"></div>
   <button id="carryBack" style="display:none">PUT BACK (X)</button>
@@ -224,6 +230,7 @@
       <div id="diagBtns"></div>
     </div>
     <div id="ptUI" class="hidden"><div id="ptGrid"></div></div>
+    <div id="notesUI" class="hidden"><textarea id="notePad" placeholder="Type clues here…"></textarea></div>
   </div>
 </div>
 
@@ -311,7 +318,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   objH:'◉ TRIAL PROTOCOL', obj1:'Step 1: Identify the virus', obj2:'Step 2: Find and consume the cure',
   obj3:'Step 3: Build the bomb and overload the electrics', obj4:'Step 4: Find the access card and escape in 60 seconds',
   hudHint:'click objects • <kbd>E</kbd> interact',
-  pauseH:'PAUSED', pauseP:"Trial suspended. The virus waits for no one, but we'll wait.",
+  notesBtn:'📝 NOTES', notesTitle:'📝 Field notes', notesPh:'Type clues, codes and counts here… auto-saved',  pauseH:'PAUSED', pauseP:"Trial suspended. The virus waits for no one, but we'll wait.",
   resumeBtn:'RESUME', restartBtn2:'Restart trial', restartBtn:'VOLUNTEER AGAIN',
   winH:'CURED <span style="color:#7ee2a8">&amp; FREE!</span> 🎉',
   doorOpen:'The airlock is already open — go!',
@@ -433,6 +440,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   objH:'◉ 试验流程', obj1:'第一步：确认病毒', obj2:'第二步：找到解药并服下',
   obj3:'第三步：制造炸弹并破坏电力系统', obj4:'第四步：找到门禁卡并在60秒内逃离',
   hudHint:'点击物品 • <kbd>E</kbd> 互动',
+  notesBtn:'📝 笔记', notesTitle:'📝 调查笔记', notesPh:'在这里记录线索、密码和数字……自动保存',
   pauseH:'已暂停', pauseP:'试验暂停。病毒不会等人，但我们会等你。',
   resumeBtn:'继续', restartBtn2:'重新开始', restartBtn:'再次参加试验',
   winH:'已治愈<span style="color:#7ee2a8">并自由！</span> 🎉',
@@ -555,6 +563,7 @@ function setLang(l){ LANG=l;
   $('objH').textContent=T('objH'); $('obj0').textContent=T('obj0'); $('obj1').textContent=T('obj1');
   $('obj2').textContent=T('obj2'); $('obj3').textContent=T('obj3'); $('obj4').textContent=T('obj4');
   $('hudHint').innerHTML=T('hudHint');
+  $('notesBtn').textContent=T('notesBtn');
   $('pauseH').textContent=T('pauseH'); $('pauseP').textContent=T('pauseP');
   $('resumeBtn').textContent=T('resumeBtn'); $('restartBtn2').textContent=T('restartBtn2');
   $('restartBtn').textContent=T('restartBtn'); $('winH').innerHTML=T('winH');
@@ -1576,14 +1585,24 @@ function tryPanel(){
 const modal=$('modal'),modalCard=$('modalCard'),modalTitle=$('modalTitle'),modalText=$('modalText'),
       keypadUI=$('keypadUI'),keypadDisplay=$('keypadDisplay'),keypadGrid=$('keypadGrid'),
       diagUI=$('diagUI'),diagTable=$('diagTable'),diagBtns=$('diagBtns'),
-      ptUI=$('ptUI'),ptGrid=$('ptGrid');
+      ptUI=$('ptUI'),ptGrid=$('ptGrid'),
+      notesUI=$('notesUI'),notePad=$('notePad');
 function hidePanels(){ modalText.style.display='none'; keypadUI.classList.add('hidden');
-  diagUI.classList.add('hidden'); ptUI.classList.add('hidden');
+  diagUI.classList.add('hidden'); ptUI.classList.add('hidden'); notesUI.classList.add('hidden');
   modalCard.classList.remove('wide'); }
 function showNote(title,text){ modal.classList.add('open'); modalCard.classList.remove('dark');
   modalTitle.textContent=title; modalText.textContent=text; modalText.style.display='block';
   keypadUI.classList.add('hidden'); diagUI.classList.add('hidden');
-  ptUI.classList.add('hidden'); exitPointer(); }
+  ptUI.classList.add('hidden'); notesUI.classList.add('hidden'); exitPointer(); }
+function openNotes(){
+  modal.classList.add('open'); modalCard.classList.remove('dark');
+  modalTitle.textContent=T('notesTitle'); hidePanels();
+  modalText.style.display='none'; notesUI.classList.remove('hidden'); exitPointer();
+  try{ notePad.value=localStorage.getItem('subject07-notes')||''; }catch(e){}
+  notePad.placeholder=T('notesPh');
+}
+notePad.addEventListener('input',()=>{ try{ localStorage.setItem('subject07-notes',notePad.value); }catch(e){} });
+$('notesBtn').onclick=()=>{ if(state.playing&&!state.won&&!state.dead)openNotes(); };
 /* generic keypad */
 let padCtx=null, keypadEntry='';
 function openKeypad(title,correct,onOk,wrongMsg){
@@ -1764,6 +1783,7 @@ const promptEl=$('prompt'),cross=$('crosshair');
 addEventListener('keydown',e=>{ if(state.scopeOpen){ if(e.code==='KeyE')closeScope(); return; }
   if(modal.classList.contains('open'))return; // don't walk/type-hit while reading
   if(e.code==='KeyX'){ putBack(); return; }
+  if(e.code==='KeyN'){ if(state.playing&&!modal.classList.contains('open')&&!state.scopeOpen)openNotes(); return; }
   state.keys[e.code]=true;
   if(e.code==='KeyE')doInteract();
   if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault(); });
