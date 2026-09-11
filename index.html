@@ -220,6 +220,10 @@ const VIRUS_EL={NaCO:['Na','C','O'],FeNa:['Fe','Na'],CONe:['C','O','Ne'],HeLiCo:
 const VIRUS_COLOR={NaCO:0x22d3ee,FeNa:0xe07b39,CONe:0x34d399,HeLiCo:0xa78bfa,MgAr:0xf472b6,HCoN:0xeab308,NiFe:0x94a3b8,KNe:0xef4444};
 const virusCode=v=>VIRUS_EL[v].map(s=>EL_NUM[s]).join('');
 const CODE2V={}; Object.keys(VIRUS_EL).forEach(v=>CODE2V[virusCode(v)]=v);
+/* microscope cell counts — deliberately DIFFERENT from atomic numbers.
+   Digit-lengths chosen so every strain concatenates to exactly 4 digits. */
+const DOTS={Na:15,C:5,O:9,Fe:23,Ne:14,He:12,Li:4,Co:6,Mg:17,Ar:19,H:11,N:2,Ni:26,K:21};
+const dotsCode=v=>VIRUS_EL[v].map(s=>DOTS[s]).join('');
 const SUBJECTS=[
   {id:'S-02',h:158,w:52,virus:'CONe'},
   {id:'S-03',h:165,w:58,virus:'FeNa'},
@@ -232,7 +236,7 @@ const SUBJECTS=[
 ];
 const playerIdx=Math.floor(Math.random()*SUBJECTS.length);
 const ME=SUBJECTS[playerIdx];
-console.log('%cSUBJECT 07 is '+ME.id+' '+ME.h+'cm '+ME.w+'kg virus '+ME.virus+' code '+virusCode(ME.virus), 'color:cyan');
+console.log('%cSUBJECT 07 is '+ME.id+' '+ME.h+'cm '+ME.w+'kg virus '+ME.virus+' code '+virusCode(ME.virus)+' fridge '+dotsCode(ME.virus), 'color:cyan');
 const RIDDLES=[
   {who:'DR. CHEN',q:{en:'My badge code is 7 × 8. What is it? (number only)',zh:'我的徽章密码是 7 × 8，是多少？（只填数字）'},h:{en:'Hint: 7 × 8 is the same as 7 × 4 × 2. Or count up in sevens.',zh:'提示：7×8 也就是 7×4×2，或者7个7个地往上数。'},a:['56']},
   {who:'DR. OKAFOR',q:{en:'What is the chemical formula for water?',zh:'水的化学式是什么？'},h:{en:'Hint: two hydrogens and one oxygen — the most famous molecule on Earth.',zh:'提示：两个氢、一个氧——地球上最著名的分子。'},a:['h2o']},
@@ -746,7 +750,7 @@ let fridgeDoor, fridgeLight, vials=[];
   reg(sign,'fridge','fridgeLbl',tryFridge);
 }
 function tryFridge(){
-  if(!state.fridgeOpen){ openKeypad(T('padTitle'),virusCode(ME.virus),onFridgeOpen,T('padWrong')); return; }
+  if(!state.fridgeOpen){ openKeypad(T('padTitle'),dotsCode(ME.virus),onFridgeOpen,T('padWrong')); return; }
   toast(state.cured?T('fridgeOpenCured'):T('fridgeOpenNeed',state.diagnosed));
 }
 function drinkCure(){
@@ -757,7 +761,7 @@ function drinkCure(){
   showNote(T('drinkOneTitle'),T('drinkText'));
 }
 function openDots(sym){
-  const n=EL_NUM[sym];
+  const n=DOTS[sym];
   modal.classList.add('open'); modalCard.classList.remove('dark');
   modalTitle.textContent=T('dotsTitle',sym); hidePanels();
   modalText.style.display='none'; dotsUI.classList.remove('hidden'); exitPointer();
@@ -765,7 +769,7 @@ function openDots(sym){
   const g=dotsCv.getContext('2d');
   g.fillStyle='#062b38'; g.fillRect(0,0,320,220);
   g.fillStyle='#7ef0c8';
-  const per=5, gap=40, r=9, rows=Math.ceil(n/per);
+  const per=5, gap=n>20?32:40, r=n>20?7:9, rows=Math.ceil(n/per);
   const y0=(220-rows*gap)/2+gap/2;
   for(let i=0;i<n;i++){ const c=i%per, r2=Math.floor(i/per);
     const inRow=(r2===rows-1&&n%per!==0)?n%per:per;
@@ -1401,9 +1405,9 @@ applyCam(); loop();
 
 function winGame(){
   state.won=true; exitPointer();
-  $('winStats').textContent=T('winStats',fmt(state.elapsed),ME.virus,virusCode(ME.virus));
+  $('winStats').textContent=T('winStats',fmt(state.elapsed),ME.virus,dotsCode(ME.virus));
   $('epilogue').innerHTML=T('winEpi',ME.virus,ME.h,ME.w);
-  $('journalScore').textContent=T('winScore',ME.id,ME.h,ME.w,ME.virus,virusCode(ME.virus),RIDDLES[cardLocker].who);
+  $('journalScore').textContent=T('winScore',ME.id,ME.h,ME.w,ME.virus,dotsCode(ME.virus),RIDDLES[cardLocker].who);
   setTimeout(()=>{ $('winScreen').classList.remove('hidden'); beep(523,.12); setTimeout(()=>beep(659,.12),140);
     setTimeout(()=>beep(784,.12),280); setTimeout(()=>beep(1046,.25),420); },1400);
   toast(T('winToast'),3000);
