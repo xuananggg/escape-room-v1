@@ -785,8 +785,10 @@ function openDots(sym,cg){
   promptEl.style.display='none'; cross.classList.remove('active');
   scopeCg=cg; beep(500,.07);
   const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
-  const hand=camera.position.clone().addScaledVector(dir,.7); hand.y-=.22;
-  const stage=tableGroup.localToWorld(new THREE.Vector3(-.24,.92,0));
+  // NOTE: capsule position is in table-local space, so convert world targets back
+  const handW=camera.position.clone().addScaledVector(dir,.7); handW.y-=.22;
+  const hand=tableGroup.worldToLocal(handW.clone());
+  const stage=new THREE.Vector3(-.24,.9,0);
   tweenPos(cg,hand,.65,()=>tweenPos(cg,stage,.8,()=>openScope(sym)));
 }
 function drawDots(cv,n){
