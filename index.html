@@ -238,25 +238,25 @@ const EL=[
 [57,'La',8,4],[58,'Ce',8,5],[59,'Pr',8,6],[60,'Nd',8,7],[61,'Pm',8,8],[62,'Sm',8,9],[63,'Eu',8,10],[64,'Gd',8,11],[65,'Tb',8,12],[66,'Dy',8,13],[67,'Ho',8,14],[68,'Er',8,15],[69,'Tm',8,16],[70,'Yb',8,17],[71,'Lu',8,18],
 [89,'Ac',9,4],[90,'Th',9,5],[91,'Pa',9,6],[92,'U',9,7],[93,'Np',9,8],[94,'Pu',9,9],[95,'Am',9,10],[96,'Cm',9,11],[97,'Bk',9,12],[98,'Cf',9,13],[99,'Es',9,14],[100,'Fm',9,15],[101,'Md',9,16],[102,'No',9,17],[103,'Lr',9,18]];
 const EL_NUM={}; EL.forEach(([n,s])=>{ if(typeof n==='number')EL_NUM[s]=n; });
-const VIRUS_EL={NaCO:['Na','C','O'],FeNa:['Fe','Na'],CONe:['C','O','Ne'],HeLiCo:['He','Li','Co'],MgAr:['Mg','Ar'],HCoN:['H','Co','N'],NiFe:['Ni','Fe'],KNe:['K','Ne']};
-const VIRUS_COLOR={NaCO:0x22d3ee,FeNa:0xe07b39,CONe:0x34d399,HeLiCo:0xa78bfa,MgAr:0xf472b6,HCoN:0xeab308,NiFe:0x94a3b8,KNe:0xef4444};
+const VIRUS_EL={FeNa:['Fe','Na'],NaFe:['Na','Fe'],MgAr:['Mg','Ar'],ArMg:['Ar','Mg'],NiCo:['Ni','Co'],CoNi:['Co','Ni'],KNe:['K','Ne'],NeK:['Ne','K']};
+const VIRUS_COLOR={FeNa:0xe07b39,NaFe:0x22d3ee,MgAr:0xf472b6,ArMg:0xeab308,NiCo:0x94a3b8,CoNi:0x38bdf8,KNe:0xef4444,NeK:0xa78bfa};
 const virusCode=v=>VIRUS_EL[v].map(s=>EL_NUM[s]).join('');
 const CODE2V={}; Object.keys(VIRUS_EL).forEach(v=>CODE2V[virusCode(v)]=v);
 /* microscope cell counts — deliberately DIFFERENT from atomic numbers.
    Digit-lengths chosen so every strain concatenates to exactly 4 digits. */
-const DOTS={Na:15,C:5,O:9,Fe:23,Ne:14,He:12,Li:4,Co:6,Mg:17,Ar:19,H:11,N:2,Ni:26,K:21};
+const DOTS={Na:15,C:5,O:9,Fe:23,Ne:14,He:12,Li:4,Co:16,Mg:17,Ar:19,H:11,N:2,Ni:26,K:21};
 const dotsCode=v=>VIRUS_EL[v].map(s=>DOTS[s]).join('');
 /* bomb-recipe state lives here (module scope) so table, rack, meter and mixer can share it */
 const phCol=ph=>ph<5?0xe2574c:(ph<=8?0x46b978:0x8b7ff0);
 let tubeSlots=[], tubeObjs=[];
 const SUBJECTS=[
-  {id:'S-02',h:158,w:52,virus:'CONe'},
+  {id:'S-02',h:158,w:52,virus:'CoNi'},
   {id:'S-03',h:165,w:58,virus:'FeNa'},
-  {id:'S-05',h:172,w:66,virus:'HeLiCo'},
-  {id:'S-06',h:175,w:70,virus:'NaCO'},
+  {id:'S-05',h:172,w:66,virus:'NeK'},
+  {id:'S-06',h:175,w:70,virus:'NaFe'},
   {id:'S-09',h:178,w:74,virus:'MgAr'},
-  {id:'S-11',h:181,w:77,virus:'HCoN'},
-  {id:'S-12',h:186,w:82,virus:'NiFe'},
+  {id:'S-11',h:181,w:77,virus:'ArMg'},
+  {id:'S-12',h:186,w:82,virus:'NiCo'},
   {id:'S-14',h:190,w:88,virus:'KNe'},
 ];
 const playerIdx=Math.floor(Math.random()*SUBJECTS.length);
@@ -314,7 +314,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   doorNeedPower:'🔒 The airlock is deadlocked. Something must trip the emergency release.',
   ptTitle:'🧪 Periodic table (tap ✕ to look away)', ptPosterTitle:'PERIODIC TABLE OF ELEMENTS',
   clipCanvasTitle:'TRIAL ROSTER', clipDiagTitle:'📋 Trial roster — name YOUR virus',
-  thSub:'Subject', thH:'Height', thW:'Weight', thStrain:'Virus code', cm:'cm', kg:'kg',
+  rosterSub:'All trial strains are 2-element constructs.',  thSub:'Subject', thH:'Height', thW:'Weight', thStrain:'Virus code', cm:'cm', kg:'kg',
   notMeasured:'not measured yet — use the station first!', readingIs:'Your stadiometer reading:',
   needMeasure:'📏 Measure yourself at the station FIRST!',
   wrongStrainV:v=>'❌ Your numbers don’t match strain '+v+'. Check the roster again!',
@@ -433,6 +433,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   doorNeedPower:'🔒 气闸锁死了，需要触发紧急释放。',
   ptTitle:'🧪 元素周期表（点 ✕ 移开视线）', ptPosterTitle:'元素周期表',
   clipCanvasTitle:'受试者名单', clipDiagTitle:'📋 受试者名单——确认你的病毒',
+  rosterSub:'所有试验病毒株均为双元素结构。',
   thSub:'受试者', thH:'身高', thW:'体重', thStrain:'病毒编号', cm:'厘米', kg:'公斤',
   notMeasured:'尚未测量——先去测量站！', readingIs:'你的测量结果：',
   needMeasure:'📏 请先去测量站测量身高体重！',
@@ -716,9 +717,10 @@ const tableGroup=new THREE.Group(); tableGroup.position.set(2.4,0,-4.0); scene.a
   board.position.set(-1.0,.81,0); board.rotation.y=.25; tableGroup.add(board);
   const clipT=dynCanvasTex(256,512,(g,w,h)=>{ g.fillStyle='#f5edd6'; g.fillRect(0,0,w,h);
     g.fillStyle='#2b2113'; g.font='bold 17px sans-serif'; g.textAlign='center';
-    g.fillText(T('clipCanvasTitle'),w/2,28); g.font='11px sans-serif';
-    SUBJECTS.forEach((s,i)=>{ g.fillText(`${s.id} ${s.h}${T('cm')} ${s.w}${T('kg')}`,w/2,60+i*56);
-      g.font='bold 18px sans-serif'; g.fillText('→ V-'+virusCode(s.virus),w/2,80+i*56); g.font='11px sans-serif'; }); });
+    g.fillText(T('clipCanvasTitle'),w/2,26); g.font='italic 11px sans-serif';
+    g.fillText(T('rosterSub'),w/2,42); g.font='11px sans-serif';
+    SUBJECTS.forEach((s,i)=>{ g.fillText(`${s.id} ${s.h}${T('cm')} ${s.w}${T('kg')}`,w/2,66+i*54);
+      g.font='bold 18px sans-serif'; g.fillText('→ V-'+virusCode(s.virus),w/2,86+i*54); g.font='11px sans-serif'; }); });
   const paper=new THREE.Mesh(new THREE.PlaneGeometry(.44,.74),
     new THREE.MeshStandardMaterial({map:clipT,roughness:.8}));
   paper.rotation.x=-Math.PI/2; paper.rotation.z=.25; paper.position.set(-1.0,.825,0); tableGroup.add(paper);
@@ -1611,7 +1613,7 @@ function openDiag(){
   modalText.style.display='none'; diagUI.classList.remove('hidden'); exitPointer();
   diagTable.innerHTML='<table><tr><th>'+T('thSub')+'</th><th>'+T('thH')+'</th><th>'+T('thW')+'</th><th>'+T('thStrain')+'</th></tr>'+
     SUBJECTS.map(s=>'<tr><td>'+s.id+'</td><td>'+s.h+' '+T('cm')+'</td><td>'+s.w+' '+T('kg')+'</td><td><b>V-'+virusCode(s.virus)+'</b></td></tr>').join('')+'</table>'+
-    '<p style="font-size:12px">'+T('readingIs')+' '+(state.measured?('<b>'+ME.h+' '+T('cm')+' / '+ME.w+' '+T('kg')+'</b>'):('<i>'+T('notMeasured')+'</i>'))+'</p>';
+    '<p style="font-size:12px">'+T('readingIs')+' '+(state.measured?('<b>'+ME.h+' '+T('cm')+' / '+ME.w+' '+T('kg')+'</b>'):('<i>'+T('notMeasured')+'</i>'))+'<br><i>'+T('rosterSub')+'</i></p>';
   diagBtns.innerHTML='';
   Object.keys(VIRUS_EL).forEach(v=>{
     const code=virusCode(v);

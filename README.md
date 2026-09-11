@@ -7,7 +7,7 @@ A single-file [Three.js](https://threejs.org/) escape-room game. No build step: 
 ## The 3 steps
 
 1. **Identify the virus** — take your height + weight at the measuring station, match the trial clipboard roster (8 subjects, 8 unique strains), log your diagnosis.
-2. **Find and consume the cure** — split your strain into elements, look up atomic numbers on the full 118-element periodic table, join them into the 4-digit fridge code (e.g. `NaCO → 11·6·8 → 1168`), unlock the cure fridge, drink **your** vial.
+2. **Find and consume the cure** — split your strain code into elements on the full 118-element periodic table (all strains are 2-element constructs, e.g. `2611 → Fe·Na`), examine those element capsules under the microscope, count the glowing cells to build the 4-digit fridge code, unlock the cure fridge, drink **your** cure.
 3. **Find the access card and escape** — solve the riddle on each of the 8 scientist lockers (math, jokes, science — including Chinese homophone puns 谐音梗). One hides the access card. Swipe out at the airlock — cured subjects only.
 
 ## Features
