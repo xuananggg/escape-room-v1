@@ -104,6 +104,16 @@
   #ptGrid .gap { visibility:hidden; }
   #dotsCap { font-size:14px; margin:6px 0; }
   #dotsCv { width:100%; border-radius:10px; background:#062b38; }
+  #scopeOverlay { position:fixed; inset:0; z-index:70; display:none; align-items:center;
+    justify-content:center; flex-direction:column; gap:14px; padding:20px;
+    background:radial-gradient(circle at 50% 46%, transparent 29vmin, rgba(0,0,0,.985) 32vmin); }
+  #scopeOverlay.open { display:flex; }
+  #scopeOverlay canvas { width:min(62vmin,500px); height:min(62vmin,500px); border-radius:50%;
+    box-shadow:0 0 0 12px #101418, 0 0 0 15px rgba(74,227,255,.35), 0 0 90px #000; }
+  #scopeOverlay h3 { color:#e8f6ff; letter-spacing:.08em; font-size:16px; text-shadow:0 2px 12px #000; }
+  #scopeOverlay p { color:#9fd8e8; font-size:13px; text-shadow:0 2px 8px #000; }
+  #scopeClose { pointer-events:auto; cursor:pointer; background:#4ae3ff; border:none;
+    border-radius:10px; padding:10px 26px; font-weight:800; color:#06121a; }
   kbd { background:#222947; border:1px solid #3a4672; border-bottom-width:3px; border-radius:6px; padding:1px 7px; font-size:12px; }
   #langRow { display:flex; gap:8px; margin-top:16px; }
   #langRow button { flex:1; padding:10px; font-size:14px; font-weight:800; border-radius:10px; cursor:pointer;
@@ -136,6 +146,12 @@
 <div id="prompt"></div>
 <div id="toast"></div>
 <div id="flash"></div>
+<div id="scopeOverlay">
+  <h3 id="scopeTitle"></h3>
+  <canvas id="scopeCv" width="300" height="300"></canvas>
+  <p id="scopeCap"></p>
+  <button id="scopeClose">✕</button>
+</div>
 <div id="chapter"><h2 id="chapterTitle"></h2><p id="chapterSub"></p></div>
 
 <div id="startScreen" class="overlay">
@@ -192,10 +208,6 @@
       <p id="riddleHint"></p>
     </div>
     <div id="ptUI" class="hidden"><div id="ptGrid"></div></div>
-    <div id="dotsUI" class="hidden">
-      <p id="dotsCap"></p>
-      <canvas id="dotsCv" width="320" height="220"></canvas>
-    </div>
   </div>
 </div>
 
@@ -250,7 +262,7 @@ const RIDDLES=[
 const cardLocker=Math.floor(Math.random()*8);
 console.log('%ccard locker: '+cardLocker, 'color:gold');
 
-const state={ playing:false, won:false, locked:false, room:'surgery', surgOpen:false,
+const state={ playing:false, won:false, locked:false, room:'surgery', surgOpen:false, scopeBusy:false, scopeOpen:false,
   measured:false, diagnosed:null, fridgeOpen:false, cured:false, hasCard:false, doorOpen:false,
   startTime:0, elapsed:0, keys:{}, yaw:0, pitch:0 };
 const $=id=>document.getElementById(id);
@@ -339,7 +351,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   microHint:'🔬 A precision microscope. Click one of the element capsules to examine it under the lens.',
   capLbl:sym=>'element capsule '+sym+' — examine under microscope',
   dotsTitle:sym=>'🔬 Capsule '+sym+' under the microscope',
-  dotsCap:'Count the glowing cells. No more, no less.',
+  dotsCap:'Count the glowing cells. No more, no less.', scopeClose:'✕ Pull away from the lens',
   cureVialLbl:'the cure — drink it?', drinkOneTitle:'💉 You drink the cure…',
   obj0:'Escape the surgery ward',
   bodyLbl:'the dead patient — examine', slipLbl:'a slip of paper — read', posterLbl:'examination chart — study',
@@ -416,7 +428,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   microHint:'🔬 精密显微镜。点击一枚元素胶囊放在镜下观察。',
   capLbl:sym=>'元素胶囊 '+sym+' ——显微镜下观察',
   dotsTitle:sym=>'🔬 显微镜下的 '+sym+' 胶囊',
-  dotsCap:'数一数发光的细胞，一个不能多，一个不能少。',
+  dotsCap:'数一数发光的细胞，一个不能多，一个不能少。', scopeClose:'✕ 移开视线',
   cureVialLbl:'解药——喝下？', drinkOneTitle:'💉 你喝下了解药……',
   obj0:'逃离手术室',
   bodyLbl:'死去的病人——检查', slipLbl:'纸条——阅读', posterLbl:'检查顺序图——查看',
@@ -658,7 +670,8 @@ const tableGroup=new THREE.Group(); tableGroup.position.set(-2.6,0,0.6); scene.a
       new THREE.MeshBasicMaterial({map:symT,side:THREE.DoubleSide}));
     slab.position.set(0,.07,0); slab.rotation.x=-.35; cg.add(slab);
     cg.position.set(.42+(ci%7)*.18,.865,(ci<7?-.13:.13)); tableGroup.add(cg);
-    findGroup(cg).forEach(m=>reg(m,'capsule','capLbl',()=>openDots(sym),sym));
+    cg.userData.home=cg.position.clone();
+    findGroup(cg).forEach(m=>reg(m,'capsule','capLbl',()=>openDots(sym,cg),sym));
   });
 }
 
@@ -760,23 +773,51 @@ function drinkCure(){
   beep(660,.1); setTimeout(()=>beep(880,.12),120); setTimeout(()=>beep(1320,.18),260);
   showNote(T('drinkOneTitle'),T('drinkText'));
 }
-function openDots(sym){
-  const n=DOTS[sym];
-  modal.classList.add('open'); modalCard.classList.remove('dark');
-  modalTitle.textContent=T('dotsTitle',sym); hidePanels();
-  modalText.style.display='none'; dotsUI.classList.remove('hidden'); exitPointer();
-  dotsCap.textContent=T('dotsCap');
-  const g=dotsCv.getContext('2d');
-  g.fillStyle='#062b38'; g.fillRect(0,0,320,220);
+/* carry + eyepiece animation */
+const tweens=[];
+function tweenPos(obj,to,durSec,done){
+  tweens.push({obj,from:obj.position.clone(),to:to.clone(),t0:performance.now(),dur:durSec*1000,done});
+}
+let scopeCg=null;
+function openDots(sym,cg){
+  if(state.scopeBusy||state.scopeOpen||!cg) return;
+  state.scopeBusy=true; hovered=null;
+  promptEl.style.display='none'; cross.classList.remove('active');
+  scopeCg=cg; beep(500,.07);
+  const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
+  const hand=camera.position.clone().addScaledVector(dir,.7); hand.y-=.22;
+  const stage=tableGroup.localToWorld(new THREE.Vector3(-.24,.92,0));
+  tweenPos(cg,hand,.65,()=>tweenPos(cg,stage,.8,()=>openScope(sym)));
+}
+function drawDots(cv,n){
+  const g=cv.getContext('2d');
+  g.fillStyle='#04141b'; g.fillRect(0,0,300,300);
   g.fillStyle='#7ef0c8';
-  const per=5, gap=n>20?32:40, r=n>20?7:9, rows=Math.ceil(n/per);
-  const y0=(220-rows*gap)/2+gap/2;
+  const per=5, gap=38, r=8, rows=Math.ceil(n/per);
+  const y0=(300-rows*gap)/2+gap/2;
   for(let i=0;i<n;i++){ const c=i%per, r2=Math.floor(i/per);
     const inRow=(r2===rows-1&&n%per!==0)?n%per:per;
-    const xx=(320-inRow*gap)/2+gap/2+c*gap, yy=y0+r2*gap;
+    const xx=(300-inRow*gap)/2+gap/2+c*gap, yy=y0+r2*gap;
     g.beginPath(); g.arc(xx,yy,r,0,Math.PI*2); g.fill(); }
+}
+function openScope(sym){
+  state.scopeBusy=false; state.scopeOpen=true; exitPointer();
+  $('scopeTitle').textContent=T('dotsTitle',sym);
+  $('scopeCap').textContent=T('dotsCap');
+  $('scopeClose').textContent=T('scopeClose');
+  drawDots($('scopeCv'),DOTS[sym]);
+  $('scopeOverlay').classList.add('open');
   beep(750,.06);
 }
+function closeScope(){
+  if(!state.scopeOpen) return;
+  $('scopeOverlay').classList.remove('open');
+  state.scopeOpen=false;
+  if(scopeCg){ const cg=scopeCg; scopeCg=null; state.scopeBusy=true;
+    tweenPos(cg,cg.userData.home,.6,()=>{ state.scopeBusy=false; }); }
+  if(state.playing&&!state.won)lockPointer();
+}
+$('scopeClose').onclick=closeScope;
 
 /* ---- SCIENTIST LOCKERS 2x4 (south wall) ---- */
 const lockerBank=new THREE.Group(); lockerBank.position.set(0,0,5.55); scene.add(lockerBank);
@@ -1164,15 +1205,14 @@ const modal=$('modal'),modalCard=$('modalCard'),modalTitle=$('modalTitle'),modal
       diagUI=$('diagUI'),diagTable=$('diagTable'),diagBtns=$('diagBtns'),
       riddleUI=$('riddleUI'),riddleQ=$('riddleQ'),riddleA=$('riddleA'),riddleGo=$('riddleGo'),
       riddleHintBtn=$('riddleHintBtn'),riddleHint=$('riddleHint'),
-      ptUI=$('ptUI'),ptGrid=$('ptGrid'),
-      dotsUI=$('dotsUI'),dotsCv=$('dotsCv'),dotsCap=$('dotsCap');
+      ptUI=$('ptUI'),ptGrid=$('ptGrid');
 function hidePanels(){ modalText.style.display='none'; keypadUI.classList.add('hidden');
   diagUI.classList.add('hidden'); riddleUI.classList.add('hidden'); ptUI.classList.add('hidden');
-  dotsUI.classList.add('hidden'); modalCard.classList.remove('wide'); }
+  modalCard.classList.remove('wide'); }
 function showNote(title,text){ modal.classList.add('open'); modalCard.classList.remove('dark');
   modalTitle.textContent=title; modalText.textContent=text; modalText.style.display='block';
   keypadUI.classList.add('hidden'); diagUI.classList.add('hidden');
-  riddleUI.classList.add('hidden'); ptUI.classList.add('hidden'); dotsUI.classList.add('hidden'); exitPointer(); }
+  riddleUI.classList.add('hidden'); ptUI.classList.add('hidden'); exitPointer(); }
 /* generic keypad */
 let padCtx=null, keypadEntry='';
 function openKeypad(title,correct,onOk,wrongMsg){
@@ -1288,7 +1328,8 @@ renderInv();
 
 /* ================= CONTROLS ================= */
 const promptEl=$('prompt'),cross=$('crosshair');
-addEventListener('keydown',e=>{ if(modal.classList.contains('open'))return; // don't walk/type-hit while reading
+addEventListener('keydown',e=>{ if(state.scopeOpen){ if(e.code==='KeyE')closeScope(); return; }
+  if(modal.classList.contains('open'))return; // don't walk/type-hit while reading
   state.keys[e.code]=true;
   if(e.code==='KeyE')doInteract();
   if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault(); });
@@ -1335,12 +1376,13 @@ function collide(p){
 const ray=new THREE.Raycaster(); ray.far=2.8;
 const center=new THREE.Vector2(0,0);
 let hovered=null;
-function doInteract(){ if(hovered)hovered.action(); }
+function doInteract(){ if(state.scopeBusy||state.scopeOpen) return; if(hovered)hovered.action(); }
 function updateHover(){
   ray.setFromCamera(center,camera);
   const meshes=interactables.map(i=>i.mesh);
   const hits=ray.intersectObjects(meshes,false);
   hovered=null; promptEl.style.display='none'; cross.classList.remove('active');
+  if(state.scopeBusy||state.scopeOpen)return;
   for(const it of interactables){ const m=it.mesh.material;
     if(m&&m.emissive&&it.mesh.userData._hl){ m.emissive.setHex(it.mesh.userData._e??0x000000); it.mesh.userData._hl=false; } }
   if(hits.length){
@@ -1375,8 +1417,9 @@ function loop(){
   if(state.playing&&!state.won){
     state.elapsed=performance.now()-state.startTime;
     $('timer').textContent=fmt(state.elapsed);
-    const f=(state.keys.KeyW||state.keys.ArrowUp?1:0)-(state.keys.KeyS||state.keys.ArrowDown?1:0);
-    const s=(state.keys.KeyD||state.keys.ArrowRight?1:0)-(state.keys.KeyA||state.keys.ArrowLeft?1:0);
+    const frozen=state.scopeOpen?0:1;
+    const f=((state.keys.KeyW||state.keys.ArrowUp?1:0)-(state.keys.KeyS||state.keys.ArrowDown?1:0))*frozen;
+    const s=((state.keys.KeyD||state.keys.ArrowRight?1:0)-(state.keys.KeyA||state.keys.ArrowLeft?1:0))*frozen;
     const sp=player.speed*dt;
     const sin=Math.sin(state.yaw),cos=Math.cos(state.yaw);
     player.pos.x+=( -sin*f + cos*s )*sp;
@@ -1392,6 +1435,12 @@ function loop(){
       vials.forEach((v,i)=>{ v.group.position.y=v.baseY+Math.sin(t+i*1.7)*.02; }); }
     if(state.hasCard===false && cardGroup.visible){ cardGroup.rotation.y=performance.now()*.002; }
   }
+  for(let i=tweens.length-1;i>=0;i--){ const tw=tweens[i];
+    let k=(performance.now()-tw.t0)/tw.dur; if(k>=1)k=1;
+    const e=k*k*(3-2*k);
+    tw.obj.position.lerpVectors(tw.from,tw.to,e);
+    tw.obj.position.y+=Math.sin(k*Math.PI)*.12;
+    if(k>=1){ tweens.splice(i,1); if(tw.done)tw.done(); } }
   ceilLight.intensity=30+Math.sin(performance.now()*.004)*.8;
   if(typeof alarmLight!=='undefined'){
     alarmLight.color.setHex(state.doorOpen?0x2bff88:0xff3b5c);
