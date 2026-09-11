@@ -88,7 +88,8 @@
     border:1px solid #3a4672; color:#ffd54a; border-radius:10px; padding:7px 10px; font-size:12px; font-weight:700; }
   #notesBtn:hover { background:#263060; }
   #noteDraw { width:100%; border-radius:8px; border:1px solid #b9a86a; cursor:crosshair;
-    touch-action:none; background:repeating-linear-gradient(#fbf6e6 0 25px, #e0d3ac 25px 26px); }
+    touch-action:none; user-select:none; -webkit-user-select:none;
+    background:repeating-linear-gradient(#fbf6e6 0 25px, #e0d3ac 25px 26px); }
   #noteClear { margin-top:8px; width:100%; padding:9px; font-size:13px; font-weight:700; border-radius:10px;
     border:1px solid #6b5d1f; background:transparent; color:#6b5d1f; cursor:pointer; }
   #diagTable table { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0; }
@@ -1617,11 +1618,15 @@ noteClear.onclick=()=>{ noteDraw.getContext('2d').clearRect(0,0,noteDraw.width,n
   let drawing=false, lx=0, ly=0;
   const pos=e=>{ const r=noteDraw.getBoundingClientRect();
     return [(e.clientX-r.left)*noteDraw.width/r.width,(e.clientY-r.top)*noteDraw.height/r.height]; };
-  noteDraw.addEventListener('pointerdown',e=>{ drawing=true; [lx,ly]=pos(e);
-    noteDraw.setPointerCapture(e.pointerId); });
+  noteDraw.addEventListener('pointerdown',e=>{ e.preventDefault(); drawing=true;
+    const [x,y]=pos(e); lx=x; ly=y;
+    const g=noteDraw.getContext('2d');
+    g.fillStyle='#2b2113'; g.beginPath(); g.arc(x,y,1.8,0,Math.PI*2); g.fill();
+    try{ noteDraw.setPointerCapture(e.pointerId); }catch(err){} });
   noteDraw.addEventListener('pointermove',e=>{ if(!drawing)return;
+    e.preventDefault();
     const [x,y]=pos(e), g=noteDraw.getContext('2d');
-    g.strokeStyle='#2b2113'; g.lineWidth=2.5; g.lineCap='round';
+    g.strokeStyle='#2b2113'; g.lineWidth=3.5; g.lineCap='round'; g.lineJoin='round';
     g.beginPath(); g.moveTo(lx,ly); g.lineTo(x,y); g.stroke(); lx=x; ly=y; });
   const stop=()=>{ if(drawing){ drawing=false; saveNotes(); } };
   noteDraw.addEventListener('pointerup',stop);
