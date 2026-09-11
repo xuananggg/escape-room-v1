@@ -373,6 +373,10 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   notNow:'Nothing happens.',
   carryUse:t=>'Use '+t+' here? Click.',
   beakerLbl:'mixing beaker', rodLbl:'stirring rod — stir', burnerLbl:'bunsen burner',
+  stirHint:'The beaker needs stirring — click the stirring rod.',
+  shakeHint:'Shake it — click the beaker.',
+  burnHint:'Heat the pH-2 tube over the burner flame, then pour it in.',
+  finaleHint:'One last mix — click the beaker.',
   actStir:'STIR · 搅拌', actShake:'SHAKE · 摇晃', actBurn:'BURN · 加热', actMix:'MIX ALL · 全部混合',
   deadH:'💥 TOO LATE',
   deadP:'Sixty seconds gone. The lab — and you — are gone with it.',
@@ -487,6 +491,10 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   notNow:'什么都没发生。',
   carryUse:t=>'在这里使用 '+t+'？点击。',
   beakerLbl:'混合烧杯', rodLbl:'搅拌棒——搅拌', burnerLbl:'本生灯',
+  stirHint:'烧杯需要搅拌——点击搅拌棒。',
+  shakeHint:'摇一摇——点击烧杯。',
+  burnHint:'把 pH 2 的试管放在燃烧器火焰上加热，再倒入。',
+  finaleHint:'最后混合——点击烧杯。',
   deadH:'💥 来不及了',
   deadP:'60秒到了。实验室——和你一起——化为灰烬。',
   retryBtn:'再试一次',
@@ -877,6 +885,19 @@ let stirT=0, burnT=0, shakeT=0;
   reg(barrel,'burner','burnerLbl',burnerClick);
   reg(bbase,'burner','burnerLbl',burnerClick);
   reg(flameM,'burner','burnerLbl',burnerClick);
+  // generous invisible hit-targets (a rod, glass and burner are thin to click)
+  const rodHit=new THREE.Mesh(new THREE.SphereGeometry(.13,8,8),
+    new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+  rodHit.position.set(-.35,1.04,.55); tubeTable.add(rodHit);
+  const beakerHit=new THREE.Mesh(new THREE.SphereGeometry(.17,8,8),
+    new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+  beakerHit.position.set(-.35,.93,.55); tubeTable.add(beakerHit);
+  const burnHit=new THREE.Mesh(new THREE.SphereGeometry(.24,8,8),
+    new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+  burnHit.position.set(0,1.02,.55); tubeTable.add(burnHit);
+  reg(rodHit,'rod','rodLbl',rodClick);
+  reg(beakerHit,'beaker','beakerLbl',beakerClick);
+  reg(burnHit,'burner','burnerLbl',burnerClick);
   findGroup(tubeTable).forEach(m=>{ if(!m.userData.iid) reg(m,'meter','meterLbl',()=>{
     if(state.scopeBusy||state.scopeOpen) return;
     if(state.carried!=null){ testTube(state.carried); }
@@ -1631,7 +1652,9 @@ function pourTube(i){
       pourStream.visible=false; t.group.rotation.z=0;
       if(ph===need&&!state.mixAdded.includes(ph)){
         state.mixAdded.push(ph); state.mixStage++;
-        toast(T('mixAdded',ph)); updateBeaker();
+        const ns=state.mixStage;
+        toast(ns===2?T('stirHint'):(ns===4?T('shakeHint'):(ns===6?T('finaleHint'):T('mixAdded',ph))),3200);
+        updateBeaker();
       } else { resetBeaker(); beep(150,.25,'sawtooth',.15); toast(T('mixWrong')); }
       tweenPos(t.group,t.group.userData.home,.5,()=>{ state.scopeBusy=false; });
     },850);
@@ -1677,6 +1700,7 @@ function burnerClick(){
 function doShake(){
   state.mixStage++; shakeT=1.3;
   beep(500,.08); setTimeout(()=>beep(650,.08),130); setTimeout(()=>beep(800,.1),260);
+  toast(T('burnHint'),3200);
 }
 function mixFinale(){
   state.hasBomb=true; state.mixStage=0; state.mixAdded=[];
@@ -1800,7 +1824,7 @@ function updateHover(){
     }
     if(!it||!m)return;
     hovered=it;
-    if(state.carried!=null&&(it.id==='meter'||it.id==='beaker'||it.id==='burner'||it.id==='rack'))
+    if(state.carried!=null&&it.id==='meter')
       promptEl.innerHTML='<b>'+T('promptKey')+'</b> '+T('carryUse','T'+(state.carried+1));
     else promptEl.innerHTML='<b>'+T('promptKey')+'</b> '+T(it.key,it.arg);
     promptEl.style.display='block'; cross.classList.add('active');
