@@ -1459,9 +1459,15 @@ let surgDoor;
   const tool2=new THREE.Mesh(new THREE.BoxGeometry(.15,.03,.04),matMetal);
   tool2.position.set(.05,.83,-.1); tool2.rotation.y=-.4; tray.add(tool2);
 }
+function tallyMarks(n){
+  const groups=[];
+  while(n>=5){ groups.push('●●●●●'); n-=5; }
+  if(n>0) groups.push('●'.repeat(n));
+  return groups.join('   ');
+}
 function openBody(){
   beep(500,.07);
-  const lines=scrMarks.map(s=>PARTS[s.part].n[LANG]+': '+'|'.repeat(s.count)).join('\n');
+  const lines=scrMarks.map(s=>PARTS[s.part].n[LANG]+':\n'+tallyMarks(s.count)).join('\n\n');
   showNote(T('bodyTitle'),T('bodyIntro')+'\n\n'+lines+'\n\n'+T('bodyHint'));
 }
 function openPoster(){
