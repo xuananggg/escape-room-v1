@@ -218,12 +218,6 @@
       <div id="diagBtns"></div>
     </div>
     <div id="ptUI" class="hidden"><div id="ptGrid"></div></div>
-    <div id="mixUI" class="hidden">
-      <p id="mixInstr"></p>
-      <div id="mixTubes"></div>
-      <p id="mixProg"></p>
-      <button id="mixAct" class="hidden">STIR</button>
-    </div>
   </div>
 </div>
 
@@ -283,7 +277,7 @@ console.log('%ccard locker: '+cardLocker, 'color:gold');
 
 const state={ playing:false, won:false, dead:false, locked:false, room:'surgery', surgOpen:false, scopeBusy:false, scopeOpen:false,
   measured:false, diagnosed:null, fridgeOpen:false, cured:false, hasBomb:false, blackout:false, countdown:null, lastTick:60,
-  hasKey:false, hasCard:false, doorOpen:false, mixStage:0, mixAdded:[],
+  hasKey:false, hasCard:false, doorOpen:false, mixStage:0, mixAdded:[], carried:null,
   startTime:0, elapsed:0, keys:{}, yaw:0, pitch:0 };
 const $=id=>document.getElementById(id);
 const toastEl=$('toast'); let toastT=null;
@@ -355,7 +349,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   coatLbl:'lab coat — search the pockets', keyToast:'Locker key acquired!', coatEmpty:'Pockets empty.',
   tubesLbl:'test-tube rack — mix a batch',
   mixTitle:'⚗️ Mixing bench — liquid bomb',
-  mixInstr:'Ward mixer protocol:\nMIX 7 with 4 — then STIR well.\nSHAKE 11. BURN 2.\nThen MIX ALL together.\n\n(The numbers are pH levels — not tube numbers.)\nSteps: 1) TEST every tube at the pH meter. 2) ADD tubes in recipe order. 3) Press STIR / SHAKE / BURN when the button lights up.',
+  mixInstr:'Ward mixer protocol:\nMIX 7 with 4 — then STIR well.\nSHAKE 11. BURN 2.\nThen MIX ALL together.\n\nCarry tubes by clicking them (X puts one back). Test tubes at the meter. Pour into the beaker. Heat the pH-2 tube over the burner flame. Stir with the rod. Shake and finish at the beaker.',
   mixBeakerEmpty:'Beaker: empty',
   mixBeaker:list=>'Beaker: '+list,
   mixAdded:ph=>'Added pH '+ph+'.',
@@ -364,12 +358,21 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   mixBuilt:'Unstable liquid bomb acquired!',
   mixEmpty:'Nothing left to mix.',
   bombPosterT:'LIQUID BOMB PROTOCOL',
-  bombPosterB:'MIX pH 7 + pH 4 → STIR\nSHAKE pH 11\nBURN pH 2\nMIX ALL → BOMB\n\nNumbers are pH levels!',
+  bombPosterB:'MIX 7 with 4 → STIR\nSHAKE 11\nBURN 2 → MIX IN\nMIX ALL → BOMB',
   testFirst:'Test that tube’s pH first!',
   testedToast:(t,ph)=>'Tube '+t+' tests at pH '+ph+'.',
   meterLbl:'pH meter — click a tube to test it',
   meterHint:'A bench pH meter. Click any test tube to carry it over and test it.',
   tubeLbl:t=>'test tube '+t+' — carry to pH meter',
+  carryToast:t=>'Holding '+t+' — click the meter, beaker or burner. X puts it back.',
+  handsFull:'Hands full — press X to put the tube back.',
+  heatFirst:'The recipe says BURN it first — hold it over the burner flame.',
+  burnedToast:'Seared over the flame. Into the beaker with it!',
+  burnNotYet:'Not yet — follow the recipe order.',
+  stirredDone:'Stirred smooth.',
+  notNow:'Nothing happens.',
+  carryUse:t=>'Use '+t+' here? Click.',
+  beakerLbl:'mixing beaker', rodLbl:'stirring rod — stir', burnerLbl:'bunsen burner',
   actStir:'STIR · 搅拌', actShake:'SHAKE · 摇晃', actBurn:'BURN · 加热', actMix:'MIX ALL · 全部混合',
   deadH:'💥 TOO LATE',
   deadP:'Sixty seconds gone. The lab — and you — are gone with it.',
@@ -460,7 +463,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   coatLbl:'白大褂——翻口袋', keyToast:'获得储物柜钥匙！', coatEmpty:'口袋空了。',
   tubesLbl:'试管架——混合药剂',
   mixTitle:'⚗️ 混合台——液体炸弹',
-  mixInstr:'混合协议：\n将 7 与 4 混合——然后充分搅拌。\n摇晃 11。加热 2。\n最后全部混合。\n\n（数字是pH值——不是试管编号。）\n步骤：1）在pH计上测试所有试管。2）按配方顺序加入。3）按钮亮起时按下搅拌/摇晃/加热。',
+  mixInstr:'混合协议：\n将 7 与 4 混合——然后充分搅拌。\n摇晃 11。加热 2。\n最后全部混合。\n\n点击拿起试管（X 放回）。在pH计上测试。倒入烧杯。把 pH 2 的试管放在燃烧器火焰上加热。用搅拌棒搅拌。在烧杯处摇晃并完成。',
   mixBeakerEmpty:'烧杯：空',
   mixBeaker:list=>'烧杯：'+list,
   mixAdded:ph=>'已加入 pH '+ph+'。',
@@ -469,12 +472,21 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   mixBuilt:'获得不稳定的液体炸弹！',
   mixEmpty:'没什么可混合了。',
   bombPosterT:'液体炸弹协议',
-  bombPosterB:'混合 pH 7 + pH 4 → 搅拌\n摇晃 pH 11\n加热 pH 2\n全部混合 → 炸弹\n\n数字是pH值！',
+  bombPosterB:'混合 7 与 4 → 搅拌\n摇晃 11\n加热 2 → 倒入\n全部混合 → 炸弹',
   testFirst:'先测这支试管的pH！',
   testedToast:(t,ph)=>'试管 '+t+' 的pH值为 '+ph+'。',
   meterLbl:'pH计——点击试管进行测试',
   meterHint:'一台pH计。点击任意试管把它拿过来测试。',
   tubeLbl:t=>'试管 '+t+' ——拿到pH计测试',
+  carryToast:t=>'拿着 '+t+' ——点击pH计、烧杯或燃烧器。X 放回。',
+  handsFull:'手里拿着东西——按 X 放回去。',
+  heatFirst:'配方要求先加热——把它放在燃烧器火焰上。',
+  burnedToast:'已加热，快放进烧杯！',
+  burnNotYet:'还没到这步——按配方顺序来。',
+  stirredDone:'搅拌均匀。',
+  notNow:'什么都没发生。',
+  carryUse:t=>'在这里使用 '+t+'？点击。',
+  beakerLbl:'混合烧杯', rodLbl:'搅拌棒——搅拌', burnerLbl:'本生灯',
   deadH:'💥 来不及了',
   deadP:'60秒到了。实验室——和你一起——化为灰烬。',
   retryBtn:'再试一次',
@@ -779,7 +791,12 @@ let stirT=0, burnT=0, shakeT=0;
     const rec={group:tg,liquid:fluid,ph,tested:false};
     tg.userData.home=tg.position.clone();
     tubeObjs.push(rec);
-    findGroup(tg).forEach(m=>reg(m,'tube','tubeLbl',()=>testTube(i),'T'+(i+1)));
+    findGroup(tg).forEach(m=>reg(m,'tube','tubeLbl',()=>{
+      if(state.scopeBusy||state.scopeOpen) return;
+      if(state.carried===i){ putBack(); }
+      else if(state.carried!=null){ toast(T('handsFull')); }
+      else { state.carried=i; beep(600,.07); toast(T('carryToast','T'+(i+1))); }
+    },'T'+(i+1)));
   });
   reg(rackBase,'rack','tubesLbl',tryMix);
   // pH meter (screen faces the room) + probe stand
@@ -855,7 +872,15 @@ let stirT=0, burnT=0, shakeT=0;
   const bombPoster=new THREE.Mesh(new THREE.PlaneGeometry(1.05,1.35),
     new THREE.MeshStandardMaterial({map:bombT,roughness:.7}));
   bombPoster.position.set(-5.93,2.0,0.6); bombPoster.rotation.y=Math.PI/2; scene.add(bombPoster);
-  findGroup(tubeTable).forEach(m=>{ if(!m.userData.iid) reg(m,'meter','meterLbl',()=>{ beep(600,.06); toast(T('meterHint')); }); });
+  reg(beakerG,'beaker','beakerLbl',beakerClick);
+  reg(stirRod,'rod','rodLbl',rodClick);
+  reg(barrel,'burner','burnerLbl',burnerClick);
+  reg(bbase,'burner','burnerLbl',burnerClick);
+  reg(flameM,'burner','burnerLbl',burnerClick);
+  findGroup(tubeTable).forEach(m=>{ if(!m.userData.iid) reg(m,'meter','meterLbl',()=>{
+    if(state.scopeBusy||state.scopeOpen) return;
+    if(state.carried!=null){ testTube(state.carried); }
+    else { beep(600,.06); toast(T('meterHint')); } }); });
 }
 function updateBeaker(){
   const n=state.mixAdded.length;
@@ -877,6 +902,7 @@ function testTube(i){
   const t=tubeObjs[i];
   if(!t||state.scopeBusy||state.scopeOpen) return;
   if(t.tested){ toast(T('testedToast','T'+(i+1),t.ph)); return; }
+  if(state.carried===i) state.carried=null;
   state.scopeBusy=true; hovered=null;
   promptEl.style.display='none'; cross.classList.remove('active');
   beep(500,.07);
@@ -1509,15 +1535,14 @@ function tryPanel(){
 const modal=$('modal'),modalCard=$('modalCard'),modalTitle=$('modalTitle'),modalText=$('modalText'),
       keypadUI=$('keypadUI'),keypadDisplay=$('keypadDisplay'),keypadGrid=$('keypadGrid'),
       diagUI=$('diagUI'),diagTable=$('diagTable'),diagBtns=$('diagBtns'),
-      mixUI=$('mixUI'),mixInstr=$('mixInstr'),mixTubes=$('mixTubes'),mixProg=$('mixProg'),mixAct=$('mixAct'),
       ptUI=$('ptUI'),ptGrid=$('ptGrid');
 function hidePanels(){ modalText.style.display='none'; keypadUI.classList.add('hidden');
-  diagUI.classList.add('hidden'); mixUI.classList.add('hidden'); ptUI.classList.add('hidden');
+  diagUI.classList.add('hidden'); ptUI.classList.add('hidden');
   modalCard.classList.remove('wide'); }
 function showNote(title,text){ modal.classList.add('open'); modalCard.classList.remove('dark');
   modalTitle.textContent=title; modalText.textContent=text; modalText.style.display='block';
   keypadUI.classList.add('hidden'); diagUI.classList.add('hidden');
-  mixUI.classList.add('hidden'); ptUI.classList.add('hidden'); exitPointer(); }
+  ptUI.classList.add('hidden'); exitPointer(); }
 /* generic keypad */
 let padCtx=null, keypadEntry='';
 function openKeypad(title,correct,onOk,wrongMsg){
@@ -1582,55 +1607,83 @@ function openDiag(){
 function tryMix(){
   if(state.hasBomb||state.blackout){ toast(T('mixEmpty')); return; }
   if(!state.cured){ beep(180,.15,'square',.06); toast(T('mixWeak')); return; }
-  modal.classList.add('open'); modalCard.classList.add('dark');
-  modalTitle.textContent=T('mixTitle'); hidePanels();
-  modalText.style.display='none'; mixUI.classList.remove('hidden'); exitPointer();
-  renderMix();
+  showNote(T('mixTitle'),T('mixInstr'));
 }
-function renderMix(){
-  mixInstr.textContent=T('mixInstr');
-  mixTubes.innerHTML='';
-  tubeSlots.forEach((ph,i)=>{
-    const tested=tubeObjs[i]&&tubeObjs[i].tested;
-    const b=document.createElement('button');
-    b.textContent='T'+(i+1)+(tested?(' · pH '+ph):' · ?');
-    b.disabled=state.mixAdded.includes(ph);
-    b.onclick=()=>tubeClick(i); mixTubes.appendChild(b); });
-  mixProg.textContent=state.mixAdded.length?T('mixBeaker',state.mixAdded.join(' + ')):T('mixBeakerEmpty');
-  const acts={2:'actStir',4:'actShake',6:'actBurn',7:'actMix'};
-  if(acts[state.mixStage]){ mixAct.textContent=T(acts[state.mixStage]); mixAct.classList.remove('hidden'); }
-  else mixAct.classList.add('hidden');
+function putBack(){
+  const i=state.carried;
+  if(i==null||state.scopeBusy) return;
+  state.carried=null; state.scopeBusy=true;
+  tweenPos(tubeObjs[i].group,tubeObjs[i].group.userData.home,.5,()=>{ state.scopeBusy=false; });
 }
-function tubeClick(i){
-  const ph=tubeSlots[i], need={0:7,1:4,3:11,5:2}[state.mixStage];
-  if(need===undefined||state.mixAdded.includes(ph)) return;
-  if(!tubeObjs[i]||!tubeObjs[i].tested){ beep(180,.15,'square',.06); toast(T('testFirst')); return; }
-  if(ph===need){ state.mixAdded.push(ph); state.mixStage++; beep(700,.07);
-    toast(T('mixAdded',ph)); updateBeaker(); renderMix(); pourIntoBeaker(ph);
-  } else { resetBeaker(); beep(150,.25,'sawtooth',.15);
-    toast(T('mixWrong')); renderMix(); }
+function pourTube(i){
+  const need={0:7,1:4,3:11,5:2}[state.mixStage];
+  if(need===undefined){ toast(T('notNow')); return; }
+  const t=tubeObjs[i], ph=t.ph;
+  state.carried=null; state.scopeBusy=true;
+  hovered=null; promptEl.style.display='none'; cross.classList.remove('active');
+  beep(500,.07);
+  tweenPos(t.group,new THREE.Vector3(-.35,1.42,.55),.45,()=>{
+    t.group.rotation.z=-.9;
+    pourStream.material.color.setHex(phCol(ph));
+    pourStream.visible=true;
+    beep(900,.12,'sine',.08); setTimeout(()=>beep(700,.12,'sine',.08),120);
+    setTimeout(()=>{
+      pourStream.visible=false; t.group.rotation.z=0;
+      if(ph===need&&!state.mixAdded.includes(ph)){
+        state.mixAdded.push(ph); state.mixStage++;
+        toast(T('mixAdded',ph)); updateBeaker();
+      } else { resetBeaker(); beep(150,.25,'sawtooth',.15); toast(T('mixWrong')); }
+      tweenPos(t.group,t.group.userData.home,.5,()=>{ state.scopeBusy=false; });
+    },850);
+  });
 }
-/* fading the recipe card so the 3D pour/stir/shake/burn shows through */
-function peek3D(ms){ modalCard.style.transition='opacity .3s'; modalCard.style.opacity='.12';
-  setTimeout(()=>{ modalCard.style.opacity='1'; },ms); }
-function pourIntoBeaker(ph){
-  pourStream.material.color.setHex(phCol(ph));
-  pourStream.visible=true; peek3D(1000);
-  beep(900,.12,'sine',.08); setTimeout(()=>beep(700,.12,'sine',.08),120);
-  setTimeout(()=>{ pourStream.visible=false; },950);
+function beakerClick(){
+  if(state.scopeBusy||state.scopeOpen) return;
+  const i=state.carried;
+  if(i!=null){ pourTube(i); return; }
+  if(state.mixStage===7){ mixFinale(); return; }
+  if(state.mixStage===4){ doShake(); return; }
+  toast(T('notNow'));
 }
-mixAct.onclick=()=>{
-  if(state.mixStage===7){
-    state.hasBomb=true; state.mixStage=0; state.mixAdded=[];
-    closeModal(); renderInv(); beep(660,.1); setTimeout(()=>beep(990,.15),130);
-    toast(T('mixBuilt'),3200); lockPointer();
-  } else if(state.mixStage===2){ state.mixStage++; stirT=1.6; beep(600,.07); renderMix(); peek3D(1500);
-  } else if(state.mixStage===4){ state.mixStage++; shakeT=1.3;
-    beep(500,.08); setTimeout(()=>beep(650,.08),130); setTimeout(()=>beep(800,.1),260);
-    renderMix(); peek3D(1300);
-  } else if(state.mixStage===6){ state.mixStage++; burnT=2.5;
-    flameM.visible=true; beep(300,.25,'sawtooth',.12); renderMix(); peek3D(1400); }
-};
+function rodClick(){
+  if(state.scopeBusy||state.scopeOpen) return;
+  if(state.mixStage===2){ state.mixStage++; stirT=1.6; beep(600,.07); toast(T('stirredDone')); }
+  else toast(T('notNow'));
+}
+function burnerClick(){
+  if(state.scopeBusy||state.scopeOpen) return;
+  const i=state.carried;
+  if(i==null){ toast(T('notNow')); return; }
+  const t=tubeObjs[i];
+  if(t.ph===2&&!t.burned&&state.mixStage>=5){
+    state.carried=null; state.scopeBusy=true;
+    hovered=null; promptEl.style.display='none'; cross.classList.remove('active');
+    beep(500,.07);
+    tweenPos(t.group,new THREE.Vector3(0,1.2,.55),.45,()=>{
+      flameM.visible=true; burnT=1.6;
+      t.liquid.material.color.setHex(0xff8c3a); t.liquid.material.emissive.setHex(0xff6a00);
+      t.liquid.material.emissiveIntensity=.7;
+      beep(300,.3,'sawtooth',.12);
+      toast(T('burnedToast'));
+      setTimeout(()=>{
+        t.burned=true;
+        tweenPos(t.group,t.group.userData.home,.45,()=>{ state.scopeBusy=false; });
+      },1400);
+    });
+  }
+  else if(t.ph===2&&t.burned){ toast(T('burnedToast')); }
+  else toast(T('burnNotYet'));
+}
+function doShake(){
+  state.mixStage++; shakeT=1.3;
+  beep(500,.08); setTimeout(()=>beep(650,.08),130); setTimeout(()=>beep(800,.1),260);
+}
+function mixFinale(){
+  state.hasBomb=true; state.mixStage=0; state.mixAdded=[];
+  stirT=1.6; beakerLiq.material.emissiveIntensity=.6;
+  renderInv(); beep(660,.1); setTimeout(()=>beep(990,.15),130);
+  toast(T('mixBuilt'),3200);
+}
 /* periodic table study view */
 function openPT(){
   modal.classList.add('open'); modalCard.classList.remove('dark'); modalCard.classList.add('wide');
@@ -1670,6 +1723,7 @@ renderInv();
 const promptEl=$('prompt'),cross=$('crosshair');
 addEventListener('keydown',e=>{ if(state.scopeOpen){ if(e.code==='KeyE')closeScope(); return; }
   if(modal.classList.contains('open'))return; // don't walk/type-hit while reading
+  if(e.code==='KeyX'){ putBack(); return; }
   state.keys[e.code]=true;
   if(e.code==='KeyE')doInteract();
   if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault(); });
@@ -1678,6 +1732,8 @@ document.addEventListener('mousemove',e=>{ if(!state.locked||!state.playing||sta
   state.yaw-=e.movementX*.0023; state.pitch-=e.movementY*.0023;
   state.pitch=Math.max(-1.45,Math.min(1.45,state.pitch)); });
 renderer.domElement.addEventListener('click',()=>{ if(state.playing&&!modal.classList.contains('open'))doInteract(); });
+renderer.domElement.addEventListener('contextmenu',e=>{ e.preventDefault();
+  if(state.playing&&!modal.classList.contains('open')&&!state.scopeOpen)putBack(); });
 function lockPointer(){ renderer.domElement.requestPointerLock?.(); }
 function exitPointer(){ document.exitPointerLock?.(); }
 document.addEventListener('pointerlockchange',()=>{
@@ -1744,7 +1800,9 @@ function updateHover(){
     }
     if(!it||!m)return;
     hovered=it;
-    promptEl.innerHTML='<b>'+T('promptKey')+'</b> '+T(it.key,it.arg);
+    if(state.carried!=null&&(it.id==='meter'||it.id==='beaker'||it.id==='burner'||it.id==='rack'))
+      promptEl.innerHTML='<b>'+T('promptKey')+'</b> '+T('carryUse','T'+(state.carried+1));
+    else promptEl.innerHTML='<b>'+T('promptKey')+'</b> '+T(it.key,it.arg);
     promptEl.style.display='block'; cross.classList.add('active');
     const mat=m.material;
     if(mat&&mat.emissive){ if(m.userData._e===undefined)m.userData._e=mat.emissive.getHex();
@@ -1783,6 +1841,12 @@ function loop(){
     if(state.doorOpen){ doorAnim=Math.min(doorAnim+dt*1.4,1); doorGroup.rotation.y=-doorAnim*1.9; }
     if(state.fridgeOpen && !state.cured){ const t=performance.now()*.003;
       vials.forEach((v,i)=>{ v.group.position.y=v.baseY+Math.sin(t+i*1.7)*.02; }); }
+    // carried tube rides in front of the camera until put back / used
+    if(state.carried!=null&&!state.scopeBusy){
+      const t=tubeObjs[state.carried];
+      if(t){ const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
+        const hw=camera.position.clone().addScaledVector(dir,.55); hw.y-=.2;
+        t.group.position.lerp(tubeTable.worldToLocal(hw.clone()),1-Math.pow(.000005,dt)); } }
     if(state.hasCard===false && cardGroup.visible){ cardGroup.rotation.y=performance.now()*.002; }
     // bomb-bench FX: stirring swirl + shaking jitter + burner flame + fizz
     if(stirT>0){ stirT-=dt; stirRod.rotation.y+=12*dt; beakerLiq.rotation.y+=8*dt; }
