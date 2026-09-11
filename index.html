@@ -382,7 +382,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   carryUse:t=>'Use '+t+' here? Click.',
   carryHold:t=>'Holding '+t+' — click empty space or press X to put it back.',
   beakerLbl:'mixing beaker', rodLbl:'stirring rod — stir', burnerLbl:'bunsen burner',
-  stirHint:'The beaker needs stirring — click the stirring rod.',
+  stirHint:'The beaker needs stirring — click the rod or the beaker.',
   shakeHint:'Shake it — click the beaker.',
   burnHint:'Heat the pH-2 tube over the burner flame, then pour it in.',
   finaleHint:'One last mix — click the beaker.',
@@ -504,7 +504,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   carryUse:t=>'在这里使用 '+t+'？点击。',
   carryHold:t=>'拿着 '+t+' ——点击空处或按 X 放回去。',
   beakerLbl:'混合烧杯', rodLbl:'搅拌棒——搅拌', burnerLbl:'本生灯',
-  stirHint:'烧杯需要搅拌——点击搅拌棒。',
+  stirHint:'烧杯需要搅拌——点击搅拌棒或烧杯。',
   shakeHint:'摇一摇——点击烧杯。',
   burnHint:'把 pH 2 的试管放在燃烧器火焰上加热，再倒入。',
   finaleHint:'最后混合——点击烧杯。',
@@ -1681,12 +1681,15 @@ function beakerClick(){
   if(i!=null){ pourTube(i); return; }
   if(state.mixStage===7){ mixFinale(); return; }
   if(state.mixStage===4){ doShake(); return; }
+  if(state.mixStage===2){ doStir(); return; }
   toast(T('notNow'));
 }
+function doStir(){ state.mixStage++; stirT=1.6; beep(600,.07); toast(T('stirredDone')); }
 function rodClick(){
   if(state.scopeBusy||state.scopeOpen) return;
-  if(state.mixStage===2){ state.mixStage++; stirT=1.6; beep(600,.07); toast(T('stirredDone')); }
-  else toast(T('notNow'));
+  if(state.carried!=null){ toast(T('handsFull')); return; }
+  if(state.mixStage===2){ doStir(); }
+  else beakerClick();
 }
 function burnerClick(){
   if(state.scopeBusy||state.scopeOpen) return;
