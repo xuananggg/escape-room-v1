@@ -250,6 +250,9 @@ const CODE2V={}; Object.keys(VIRUS_EL).forEach(v=>CODE2V[virusCode(v)]=v);
    Digit-lengths chosen so every strain concatenates to exactly 4 digits. */
 const DOTS={Na:15,C:5,O:9,Fe:23,Ne:14,He:12,Li:4,Co:6,Mg:17,Ar:19,H:11,N:2,Ni:26,K:21};
 const dotsCode=v=>VIRUS_EL[v].map(s=>DOTS[s]).join('');
+/* bomb-recipe state lives here (module scope) so table, rack, meter and mixer can share it */
+const phCol=ph=>ph<5?0xe2574c:(ph<=8?0x46b978:0x8b7ff0);
+let tubeSlots=[], tubeObjs=[];
 const SUBJECTS=[
   {id:'S-02',h:158,w:52,virus:'CONe'},
   {id:'S-03',h:165,w:58,virus:'FeNa'},
@@ -735,9 +738,7 @@ const tableGroup=new THREE.Group(); tableGroup.position.set(2.4,0,-4.0); scene.a
   });
   // bomb recipe data: pH per rack slot (the rack itself stands on the side bench)
   const tubePH=[...[7,4,11,2],...[3,5,6,8,9,10].sort(()=>Math.random()-.5).slice(0,2)];
-  const tubeSlots=[...tubePH].sort(()=>Math.random()-.5);
-  const phCol=ph=>ph<5?0xe2574c:(ph<=8?0x46b978:0x8b7ff0);
-  const tubeObjs=[];
+  tubeSlots=[...tubePH].sort(()=>Math.random()-.5);
 }
 
 /* ---- SIDE BENCH: test-tube rack + pH meter (west) ---- */
