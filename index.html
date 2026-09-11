@@ -372,6 +372,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   stirredDone:'Stirred smooth.',
   notNow:'Nothing happens.',
   carryUse:t=>'Use '+t+' here? Click.',
+  carryHold:t=>'Holding '+t+' — click empty space or press X to put it back.',
   beakerLbl:'mixing beaker', rodLbl:'stirring rod — stir', burnerLbl:'bunsen burner',
   stirHint:'The beaker needs stirring — click the stirring rod.',
   shakeHint:'Shake it — click the beaker.',
@@ -490,6 +491,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   stirredDone:'搅拌均匀。',
   notNow:'什么都没发生。',
   carryUse:t=>'在这里使用 '+t+'？点击。',
+  carryHold:t=>'拿着 '+t+' ——点击空处或按 X 放回去。',
   beakerLbl:'混合烧杯', rodLbl:'搅拌棒——搅拌', burnerLbl:'本生灯',
   stirHint:'烧杯需要搅拌——点击搅拌棒。',
   shakeHint:'摇一摇——点击烧杯。',
@@ -1799,7 +1801,9 @@ function collide(p){
 const ray=new THREE.Raycaster(); ray.far=2.8;
 const center=new THREE.Vector2(0,0);
 let hovered=null;
-function doInteract(){ if(state.scopeBusy||state.scopeOpen) return; if(hovered)hovered.action(); }
+function doInteract(){ if(state.scopeBusy||state.scopeOpen) return;
+  if(hovered){ hovered.action(); return; }
+  if(state.carried!=null) putBack(); }
 function updateHover(){
   ray.setFromCamera(center,camera);
   const meshes=interactables.map(i=>i.mesh);
@@ -1869,6 +1873,9 @@ function loop(){
     const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
     flash.target.position.copy(camera.position).addScaledVector(dir,3);
     updateHover();
+    if(state.carried!=null&&!hovered&&!state.scopeBusy){
+      promptEl.innerHTML='<b>'+T('promptKey')+'</b> '+T('carryHold','T'+(state.carried+1));
+      promptEl.style.display='block'; }
     if(state.doorOpen){ doorAnim=Math.min(doorAnim+dt*1.4,1); doorGroup.rotation.y=-doorAnim*1.9; }
     if(state.fridgeOpen && !state.cured){ const t=performance.now()*.003;
       vials.forEach((v,i)=>{ v.group.position.y=v.baseY+Math.sin(t+i*1.7)*.02; }); }
