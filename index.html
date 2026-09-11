@@ -87,9 +87,10 @@
   #notesBtn { pointer-events:auto; cursor:pointer; margin-top:8px; width:100%; background:#1c2347;
     border:1px solid #3a4672; color:#ffd54a; border-radius:10px; padding:7px 10px; font-size:12px; font-weight:700; }
   #notesBtn:hover { background:#263060; }
-  #notePad { width:100%; min-height:220px; margin-top:6px; padding:10px 12px; font-size:14px; line-height:26px;
-    border-radius:8px; border:1px solid #b9a86a; resize:vertical;
-    background:repeating-linear-gradient(#fbf6e6 0 25px, #e0d3ac 25px 26px); color:#2b2113; }
+  #noteDraw { width:100%; border-radius:8px; border:1px solid #b9a86a; cursor:crosshair;
+    touch-action:none; background:repeating-linear-gradient(#fbf6e6 0 25px, #e0d3ac 25px 26px); }
+  #noteClear { margin-top:8px; width:100%; padding:9px; font-size:13px; font-weight:700; border-radius:10px;
+    border:1px solid #6b5d1f; background:transparent; color:#6b5d1f; cursor:pointer; }
   #diagTable table { width:100%; border-collapse:collapse; font-size:13px; margin:8px 0; }
   #diagTable th, #diagTable td { border:1px solid #b9a86a; padding:6px 8px; text-align:center; }
   #diagTable th { background:#e4d5a4; }
@@ -230,7 +231,10 @@
       <div id="diagBtns"></div>
     </div>
     <div id="ptUI" class="hidden"><div id="ptGrid"></div></div>
-    <div id="notesUI" class="hidden"><textarea id="notePad" placeholder="Type clues here…"></textarea></div>
+    <div id="notesUI" class="hidden">
+      <canvas id="noteDraw" width="400" height="260"></canvas>
+      <button id="noteClear">Clear page</button>
+    </div>
   </div>
 </div>
 
@@ -317,8 +321,8 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   startBtn:'▶ &nbsp;WAKE UP, SUBJECT 07',
   objH:'◉ TRIAL PROTOCOL', obj1:'Step 1: Identify the virus', obj2:'Step 2: Find and consume the cure',
   obj3:'Step 3: Build the bomb and overload the electrics', obj4:'Step 4: Find the access card and escape in 60 seconds',
-  hudHint:'click objects • <kbd>E</kbd> interact',
-  notesBtn:'📝 NOTES', notesTitle:'📝 Field notes', notesPh:'Type clues, codes and counts here… auto-saved',  pauseH:'PAUSED', pauseP:"Trial suspended. The virus waits for no one, but we'll wait.",
+  hudHint:'click objects • <kbd>E</kbd> interact • <kbd>N</kbd> notes',
+  notesBtn:'📝 NOTES', notesTitle:'📝 Field notes', notesPh:'Type clues, codes and counts here… auto-saved', notesClear:'Clear page',  pauseH:'PAUSED', pauseP:"Trial suspended. The virus waits for no one, but we'll wait.",
   resumeBtn:'RESUME', restartBtn2:'Restart trial', restartBtn:'VOLUNTEER AGAIN',
   winH:'CURED <span style="color:#7ee2a8">&amp; FREE!</span> 🎉',
   doorOpen:'The airlock is already open — go!',
@@ -439,8 +443,8 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   startBtn:'▶ &nbsp;醒来吧，07号受试者',
   objH:'◉ 试验流程', obj1:'第一步：确认病毒', obj2:'第二步：找到解药并服下',
   obj3:'第三步：制造炸弹并破坏电力系统', obj4:'第四步：找到门禁卡并在60秒内逃离',
-  hudHint:'点击物品 • <kbd>E</kbd> 互动',
-  notesBtn:'📝 笔记', notesTitle:'📝 调查笔记', notesPh:'在这里记录线索、密码和数字……自动保存',
+  hudHint:'点击物品 • <kbd>E</kbd> 互动 • <kbd>N</kbd> 笔记',
+  notesBtn:'📝 笔记', notesTitle:'📝 调查笔记', notesPh:'在这里记录线索、密码和数字……自动保存', notesClear:'清空',
   pauseH:'已暂停', pauseP:'试验暂停。病毒不会等人，但我们会等你。',
   resumeBtn:'继续', restartBtn2:'重新开始', restartBtn:'再次参加试验',
   winH:'已治愈<span style="color:#7ee2a8">并自由！</span> 🎉',
@@ -1586,7 +1590,7 @@ const modal=$('modal'),modalCard=$('modalCard'),modalTitle=$('modalTitle'),modal
       keypadUI=$('keypadUI'),keypadDisplay=$('keypadDisplay'),keypadGrid=$('keypadGrid'),
       diagUI=$('diagUI'),diagTable=$('diagTable'),diagBtns=$('diagBtns'),
       ptUI=$('ptUI'),ptGrid=$('ptGrid'),
-      notesUI=$('notesUI'),notePad=$('notePad');
+      notesUI=$('notesUI'),noteDraw=$('noteDraw'),noteClear=$('noteClear');
 function hidePanels(){ modalText.style.display='none'; keypadUI.classList.add('hidden');
   diagUI.classList.add('hidden'); ptUI.classList.add('hidden'); notesUI.classList.add('hidden');
   modalCard.classList.remove('wide'); }
@@ -1598,10 +1602,31 @@ function openNotes(){
   modal.classList.add('open'); modalCard.classList.remove('dark');
   modalTitle.textContent=T('notesTitle'); hidePanels();
   modalText.style.display='none'; notesUI.classList.remove('hidden'); exitPointer();
-  try{ notePad.value=localStorage.getItem('subject07-notes')||''; }catch(e){}
-  notePad.placeholder=T('notesPh');
+  noteClear.textContent=T('notesClear');
+  const g=noteDraw.getContext('2d');
+  g.clearRect(0,0,noteDraw.width,noteDraw.height);
+  try{ const img=new Image();
+    img.onload=()=>g.drawImage(img,0,0);
+    img.src=localStorage.getItem('subject07-notes')||'';
+    if(!img.src) throw 0;
+  }catch(e){}
 }
-notePad.addEventListener('input',()=>{ try{ localStorage.setItem('subject07-notes',notePad.value); }catch(e){} });
+function saveNotes(){ try{ localStorage.setItem('subject07-notes',noteDraw.toDataURL()); }catch(e){} }
+noteClear.onclick=()=>{ noteDraw.getContext('2d').clearRect(0,0,noteDraw.width,noteDraw.height); saveNotes(); };
+{
+  let drawing=false, lx=0, ly=0;
+  const pos=e=>{ const r=noteDraw.getBoundingClientRect();
+    return [(e.clientX-r.left)*noteDraw.width/r.width,(e.clientY-r.top)*noteDraw.height/r.height]; };
+  noteDraw.addEventListener('pointerdown',e=>{ drawing=true; [lx,ly]=pos(e);
+    noteDraw.setPointerCapture(e.pointerId); });
+  noteDraw.addEventListener('pointermove',e=>{ if(!drawing)return;
+    const [x,y]=pos(e), g=noteDraw.getContext('2d');
+    g.strokeStyle='#2b2113'; g.lineWidth=2.5; g.lineCap='round';
+    g.beginPath(); g.moveTo(lx,ly); g.lineTo(x,y); g.stroke(); lx=x; ly=y; });
+  const stop=()=>{ if(drawing){ drawing=false; saveNotes(); } };
+  noteDraw.addEventListener('pointerup',stop);
+  noteDraw.addEventListener('pointercancel',stop);
+}
 $('notesBtn').onclick=()=>{ if(state.playing&&!state.won&&!state.dead)openNotes(); };
 /* generic keypad */
 let padCtx=null, keypadEntry='';
