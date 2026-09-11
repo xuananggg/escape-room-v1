@@ -102,6 +102,8 @@
   #ptGrid .cell.tiny b { font-size:6px; }
   #ptGrid .cell.tiny small { font-size:6px; }
   #ptGrid .gap { visibility:hidden; }
+  #dotsCap { font-size:14px; margin:6px 0; }
+  #dotsCv { width:100%; border-radius:10px; background:#062b38; }
   kbd { background:#222947; border:1px solid #3a4672; border-bottom-width:3px; border-radius:6px; padding:1px 7px; font-size:12px; }
   #langRow { display:flex; gap:8px; margin-top:16px; }
   #langRow button { flex:1; padding:10px; font-size:14px; font-weight:800; border-radius:10px; cursor:pointer;
@@ -190,6 +192,10 @@
       <p id="riddleHint"></p>
     </div>
     <div id="ptUI" class="hidden"><div id="ptGrid"></div></div>
+    <div id="dotsUI" class="hidden">
+      <p id="dotsCap"></p>
+      <canvas id="dotsCv" width="320" height="220"></canvas>
+    </div>
   </div>
 </div>
 
@@ -213,6 +219,7 @@ const EL_NUM={}; EL.forEach(([n,s])=>{ if(typeof n==='number')EL_NUM[s]=n; });
 const VIRUS_EL={NaCO:['Na','C','O'],FeNa:['Fe','Na'],CONe:['C','O','Ne'],HeLiCo:['He','Li','Co'],MgAr:['Mg','Ar'],HCoN:['H','Co','N'],NiFe:['Ni','Fe'],KNe:['K','Ne']};
 const VIRUS_COLOR={NaCO:0x22d3ee,FeNa:0xe07b39,CONe:0x34d399,HeLiCo:0xa78bfa,MgAr:0xf472b6,HCoN:0xeab308,NiFe:0x94a3b8,KNe:0xef4444};
 const virusCode=v=>VIRUS_EL[v].map(s=>EL_NUM[s]).join('');
+const CODE2V={}; Object.keys(VIRUS_EL).forEach(v=>CODE2V[virusCode(v)]=v);
 const SUBJECTS=[
   {id:'S-02',h:158,w:52,virus:'CONe'},
   {id:'S-03',h:165,w:58,virus:'FeNa'},
@@ -280,7 +287,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   doorNeedCard:'🔒 Card reader blinks red. Access denied.',
   ptTitle:'🧪 Periodic table (tap ✕ to look away)', ptPosterTitle:'PERIODIC TABLE OF ELEMENTS',
   clipCanvasTitle:'TRIAL ROSTER', clipDiagTitle:'📋 Trial roster — name YOUR virus',
-  thSub:'Subject', thH:'Height', thW:'Weight', thStrain:'Strain', cm:'cm', kg:'kg',
+  thSub:'Subject', thH:'Height', thW:'Weight', thStrain:'Virus code', cm:'cm', kg:'kg',
   notMeasured:'not measured yet — use the station first!', readingIs:'Your stadiometer reading:',
   needMeasure:'📏 Measure yourself at the station FIRST!',
   wrongStrainV:v=>'❌ Your numbers don’t match strain '+v+'. Check the roster again!',
@@ -324,6 +331,12 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   ptLbl:'the periodic table — study it', clipLbl:'the trial clipboard — diagnose',
   measureLbl:'height + weight station — measure yourself', fridgeLbl:'the cure fridge — locked',
   fridgePadLbl:'the fridge keypad',
+  microLbl:'a microscope — click a capsule to use it',
+  microHint:'🔬 A precision microscope. Click one of the element capsules to examine it under the lens.',
+  capLbl:sym=>'element capsule '+sym+' — examine under microscope',
+  dotsTitle:sym=>'🔬 Capsule '+sym+' under the microscope',
+  dotsCap:'Count the glowing cells. No more, no less.',
+  cureVialLbl:'the cure — drink it?', drinkOneTitle:'💉 You drink the cure…',
   obj0:'Escape the surgery ward',
   bodyLbl:'the dead patient — examine', slipLbl:'a slip of paper — read', posterLbl:'examination chart — study',
   surgDoorLbl:'the ward door — locked', surgPadLbl:'the ward keypad',
@@ -351,7 +364,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   doorNeedCard:'🔒 读卡器闪着红灯，拒绝通行。',
   ptTitle:'🧪 元素周期表（点 ✕ 移开视线）', ptPosterTitle:'元素周期表',
   clipCanvasTitle:'受试者名单', clipDiagTitle:'📋 受试者名单——确认你的病毒',
-  thSub:'受试者', thH:'身高', thW:'体重', thStrain:'病毒株', cm:'厘米', kg:'公斤',
+  thSub:'受试者', thH:'身高', thW:'体重', thStrain:'病毒编号', cm:'厘米', kg:'公斤',
   notMeasured:'尚未测量——先去测量站！', readingIs:'你的测量结果：',
   needMeasure:'📏 请先去测量站测量身高体重！',
   wrongStrainV:v=>'❌ 你的数据与病毒株 '+v+' 不符。再核对一下名单！',
@@ -395,6 +408,12 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   ptLbl:'元素周期表——查看', clipLbl:'受试者名单——确诊',
   measureLbl:'身高体重站——测量', fridgeLbl:'解药冷藏柜——已上锁',
   fridgePadLbl:'冷藏柜密码键盘',
+  microLbl:'显微镜——点击胶囊使用',
+  microHint:'🔬 精密显微镜。点击一枚元素胶囊放在镜下观察。',
+  capLbl:sym=>'元素胶囊 '+sym+' ——显微镜下观察',
+  dotsTitle:sym=>'🔬 显微镜下的 '+sym+' 胶囊',
+  dotsCap:'数一数发光的细胞，一个不能多，一个不能少。',
+  cureVialLbl:'解药——喝下？', drinkOneTitle:'💉 你喝下了解药……',
   obj0:'逃离手术室',
   bodyLbl:'死去的病人——检查', slipLbl:'纸条——阅读', posterLbl:'检查顺序图——查看',
   surgDoorLbl:'病房门——已上锁', surgPadLbl:'病房密码键盘',
@@ -579,33 +598,70 @@ function tryDoor(){
 /* ---- TABLE + CLIPBOARD (west-center) ---- */
 const tableGroup=new THREE.Group(); tableGroup.position.set(-2.6,0,0.6); scene.add(tableGroup);
 {
-  const top=new THREE.Mesh(new RoundedBoxGeometry(1.9,.08,1.0,2,.02),matBench);
-  top.position.y=.76; top.castShadow=top.receiveShadow=true; tableGroup.add(top);
-  [[-.87,-.42],[.87,-.42],[-.87,.42],[.87,.42]].forEach(([x,z])=>{
+  const top=new THREE.Mesh(new RoundedBoxGeometry(2.8,.08,1.0,2,.02),matBench);
+  top.position.set(.3,.76,0); top.castShadow=top.receiveShadow=true; tableGroup.add(top);
+  [[-1.02,-.42],[1.62,-.42],[-1.02,.42],[1.62,.42]].forEach(([x,z])=>{
     const l=new THREE.Mesh(new THREE.BoxGeometry(.08,.76,.08),matFrame);
     l.position.set(x,.38,z); l.castShadow=true; tableGroup.add(l); });
   const board=new THREE.Mesh(new THREE.BoxGeometry(.5,.02,.82),matFrame);
-  board.position.set(-.3,.81,0); board.rotation.y=.25; tableGroup.add(board);
+  board.position.set(-.85,.81,0); board.rotation.y=.25; tableGroup.add(board);
   const clipT=dynCanvasTex(256,512,(g,w,h)=>{ g.fillStyle='#f5edd6'; g.fillRect(0,0,w,h);
     g.fillStyle='#2b2113'; g.font='bold 17px sans-serif'; g.textAlign='center';
     g.fillText(T('clipCanvasTitle'),w/2,28); g.font='11px sans-serif';
     SUBJECTS.forEach((s,i)=>{ g.fillText(`${s.id} ${s.h}${T('cm')} ${s.w}${T('kg')}`,w/2,60+i*56);
-      g.font='bold 18px sans-serif'; g.fillText('→ '+s.virus,w/2,80+i*56); g.font='11px sans-serif'; }); });
+      g.font='bold 18px sans-serif'; g.fillText('→ V-'+virusCode(s.virus),w/2,80+i*56); g.font='11px sans-serif'; }); });
   const paper=new THREE.Mesh(new THREE.PlaneGeometry(.44,.74),
     new THREE.MeshStandardMaterial({map:clipT,roughness:.8}));
-  paper.rotation.x=-Math.PI/2; paper.rotation.z=.25; paper.position.set(-.3,.825,0); tableGroup.add(paper);
+  paper.rotation.x=-Math.PI/2; paper.rotation.z=.25; paper.position.set(-.85,.825,0); tableGroup.add(paper);
   const clip=new THREE.Mesh(new THREE.BoxGeometry(.12,.02,.04),matMetal);
-  clip.position.set(-.3,.83,-.38); clip.rotation.y=.25; tableGroup.add(clip);
+  clip.position.set(-.85,.83,-.38); clip.rotation.y=.25; tableGroup.add(clip);
   findGroup(tableGroup).forEach(m=>{ if(!m.userData.iid) reg(m,'clipboard','clipLbl',openDiag); });
   reg(paper,'clipboard','clipLbl',openDiag);
   reg(board,'clipboard','clipLbl',openDiag);
   reg(clip,'clipboard','clipLbl',openDiag);
+  // microscope (examine capsules under it)
+  const micro=new THREE.Group(); micro.position.set(-.2,.8,0); tableGroup.add(micro);
+  const mbase=new THREE.Mesh(new THREE.BoxGeometry(.28,.04,.22),matFrame);
+  mbase.position.y=.02; mbase.castShadow=true; micro.add(mbase);
+  const marm=new THREE.Mesh(new THREE.BoxGeometry(.06,.42,.06),matMetal);
+  marm.position.set(.1,.24,0); micro.add(marm);
+  const mtube=new THREE.Mesh(new THREE.CylinderGeometry(.045,.05,.3,12),matMetal);
+  mtube.position.set(-.02,.42,0); mtube.rotation.z=.45; micro.add(mtube);
+  const meyep=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.06,10),
+    new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:.6}));
+  meyep.position.set(-.09,.53,0); meyep.rotation.z=.45; micro.add(meyep);
+  const mstage=new THREE.Mesh(new THREE.BoxGeometry(.2,.02,.2),
+    new THREE.MeshStandardMaterial({color:0x0b2b36,roughness:.4}));
+  mstage.position.set(-.04,.06,0); micro.add(mstage);
+  const mglow=new THREE.Mesh(new THREE.CircleGeometry(.05,16),
+    new THREE.MeshBasicMaterial({color:0x7ef0c8}));
+  mglow.rotation.x=-Math.PI/2; mglow.position.set(-.04,.072,0); micro.add(mglow);
+  findGroup(micro).forEach(m=>reg(m,'micro','microLbl',()=>{ beep(600,.06); toast(T('microHint')); }));
+  // capsule tray: EVERY element used by any strain (player must know which are theirs)
+  const trayBase=new THREE.Mesh(new THREE.BoxGeometry(1.35,.04,.5),matFrame);
+  trayBase.position.set(.98,.82,0); trayBase.castShadow=true; tableGroup.add(trayBase);
+  ['Na','C','O','Fe','Ne','He','Li','Co','Mg','Ar','H','N','Ni','K'].forEach((sym,ci)=>{
+    const cg=new THREE.Group();
+    const cbody=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.1,10),
+      new THREE.MeshStandardMaterial({color:0xf2f5f7,roughness:.35}));
+    cbody.rotation.z=Math.PI/2; cbody.castShadow=true; cg.add(cbody);
+    const cband=new THREE.Mesh(new THREE.CylinderGeometry(.031,.031,.035,10),
+      new THREE.MeshStandardMaterial({color:0x0e7d96,roughness:.4,emissive:0x083844,emissiveIntensity:.4}));
+    cband.rotation.z=Math.PI/2; cband.position.x=.025; cg.add(cband);
+    const symT=canvasTex(128,64,(g,w,h)=>{ g.fillStyle='#0b2b36'; g.fillRect(0,0,w,h);
+      g.fillStyle='#fff'; g.font='bold 32px sans-serif'; g.textAlign='center'; g.fillText(sym,w/2,43); });
+    const slab=new THREE.Mesh(new THREE.PlaneGeometry(.11,.055),
+      new THREE.MeshBasicMaterial({map:symT,side:THREE.DoubleSide}));
+    slab.position.set(0,.07,0); slab.rotation.x=-.35; cg.add(slab);
+    cg.position.set(.42+(ci%7)*.18,.865,(ci<7?-.13:.13)); tableGroup.add(cg);
+    findGroup(cg).forEach(m=>reg(m,'capsule','capLbl',()=>openDots(sym),sym));
+  });
 }
 
 /* ---- HEIGHT + WEIGHT STATION (beside table) ---- */
 let screenMesh, screenTex, screenCtx, screenCanvas;
 {
-  const g=new THREE.Group(); g.position.set(-.6,0,0.6); scene.add(g);
+  const g=new THREE.Group(); g.position.set(-.15,0,0.9); scene.add(g);
   const plat=new THREE.Mesh(new RoundedBoxGeometry(.7,.06,.7,2,.02),matFrame);
   plat.position.y=.03; plat.castShadow=plat.receiveShadow=true; g.add(plat);
   const pole=new THREE.Mesh(new THREE.BoxGeometry(.08,2.1,.08),matMetal);
@@ -667,24 +723,23 @@ let fridgeDoor, fridgeLight, vials=[];
   [.7,1.15].forEach(y=>{ const sh=new THREE.Mesh(new THREE.BoxGeometry(.7,.04,1.2),matBench);
     sh.position.set(0,y,0); fridgeGroup.add(sh); });
   fridgeLight=new THREE.PointLight(0xbfefff,0,3,2); fridgeLight.position.set(-.2,1.6,0); fridgeGroup.add(fridgeLight);
-  const order=['NaCO','FeNa','CONe','HeLiCo','MgAr','HCoN','NiFe','KNe'];
-  order.forEach((v,i)=>{
+  const cureCode=virusCode(ME.virus);
+  {
     const vg=new THREE.Group();
-    const liquid=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.26,14),
-      new THREE.MeshPhysicalMaterial({color:VIRUS_COLOR[v],emissive:VIRUS_COLOR[v],emissiveIntensity:.5,roughness:.15,metalness:0,clearcoat:1,clearcoatRoughness:.1,transparent:true,opacity:.92}));
+    const liquid=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.32,16),
+      new THREE.MeshPhysicalMaterial({color:VIRUS_COLOR[ME.virus],emissive:VIRUS_COLOR[ME.virus],emissiveIntensity:.6,roughness:.15,metalness:0,clearcoat:1,clearcoatRoughness:.1,transparent:true,opacity:.92}));
     vg.add(liquid);
-    const cap=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.07,10),matMetal);
-    cap.position.y=.165; vg.add(cap);
-    const labT=canvasTex(128,48,(g,w,h)=>{ g.fillStyle='#fff'; g.fillRect(0,0,w,h);
-      g.fillStyle='#111'; g.font='bold 22px sans-serif'; g.textAlign='center'; g.fillText(v,w/2,32); });
-    const lab=new THREE.Mesh(new THREE.PlaneGeometry(.2,.075),
-      new THREE.MeshBasicMaterial({map:labT})); lab.position.set(0,.02,.095); vg.add(lab);
-    const lab2=lab.clone(); lab2.rotation.y=Math.PI; lab2.position.z=-.095; vg.add(lab2);
-    const topRow=i>=4, vy=topRow?1.31:.86;
-    vg.position.set(-.1,vy,-.45+(i%4)*.3); vg.visible=false; fridgeGroup.add(vg);
-    vials.push({group:vg,virus:v,baseY:vy});
-    findGroup(vg).forEach(m=>reg(m,'vial','vialLabel',()=>drinkVial(v),v));
-  });
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.08,12),matMetal);
+    cap.position.y=.2; vg.add(cap);
+    const labT=canvasTex(160,56,(g,w,h)=>{ g.fillStyle='#fff'; g.fillRect(0,0,w,h);
+      g.fillStyle='#b00020'; g.font='bold 24px sans-serif'; g.textAlign='center'; g.fillText('V-'+cureCode,w/2,37); });
+    const lab=new THREE.Mesh(new THREE.PlaneGeometry(.24,.084),
+      new THREE.MeshBasicMaterial({map:labT})); lab.position.set(0,.02,.115); vg.add(lab);
+    const lab2=lab.clone(); lab2.rotation.y=Math.PI; lab2.position.z=-.115; vg.add(lab2);
+    vg.position.set(-.1,.9,0); vg.visible=false; fridgeGroup.add(vg);
+    vials.push({group:vg,baseY:.9});
+    findGroup(vg).forEach(m=>reg(m,'vial','cureVialLbl',drinkCure));
+  }
   shellMeshes.forEach(p=>reg(p,'fridge','fridgeLbl',tryFridge));
   findGroup(fridgeDoor).forEach(m=>reg(m,'fridge','fridgeLbl',tryFridge));
   reg(lock,'fridge','fridgePadLbl',tryFridge);
@@ -694,17 +749,29 @@ function tryFridge(){
   if(!state.fridgeOpen){ openKeypad(T('padTitle'),virusCode(ME.virus),onFridgeOpen,T('padWrong')); return; }
   toast(state.cured?T('fridgeOpenCured'):T('fridgeOpenNeed',state.diagnosed));
 }
-function drinkVial(v){
+function drinkCure(){
   if(!state.fridgeOpen) return;
   if(state.cured){ toast(T('alreadyCured')); return; }
-  if(v===ME.virus){
-    state.cured=true; flashGreen(); objective('obj2'); renderInv();
-    beep(660,.1); setTimeout(()=>beep(880,.12),120); setTimeout(()=>beep(1320,.18),260);
-    showNote(T('drinkTitle',v),T('drinkText'));
-  } else {
-    beep(150,.25,'sawtooth',.15);
-    toast(T('wrongVial',ME.virus,state.diagnosed));
-  }
+  state.cured=true; flashGreen(); objective('obj2'); renderInv();
+  beep(660,.1); setTimeout(()=>beep(880,.12),120); setTimeout(()=>beep(1320,.18),260);
+  showNote(T('drinkOneTitle'),T('drinkText'));
+}
+function openDots(sym){
+  const n=EL_NUM[sym];
+  modal.classList.add('open'); modalCard.classList.remove('dark');
+  modalTitle.textContent=T('dotsTitle',sym); hidePanels();
+  modalText.style.display='none'; dotsUI.classList.remove('hidden'); exitPointer();
+  dotsCap.textContent=T('dotsCap');
+  const g=dotsCv.getContext('2d');
+  g.fillStyle='#062b38'; g.fillRect(0,0,320,220);
+  g.fillStyle='#7ef0c8';
+  const per=5, gap=40, r=9, rows=Math.ceil(n/per);
+  const y0=(220-rows*gap)/2+gap/2;
+  for(let i=0;i<n;i++){ const c=i%per, r2=Math.floor(i/per);
+    const inRow=(r2===rows-1&&n%per!==0)?n%per:per;
+    const xx=(320-inRow*gap)/2+gap/2+c*gap, yy=y0+r2*gap;
+    g.beginPath(); g.arc(xx,yy,r,0,Math.PI*2); g.fill(); }
+  beep(750,.06);
 }
 
 /* ---- SCIENTIST LOCKERS 2x4 (south wall) ---- */
@@ -1093,14 +1160,15 @@ const modal=$('modal'),modalCard=$('modalCard'),modalTitle=$('modalTitle'),modal
       diagUI=$('diagUI'),diagTable=$('diagTable'),diagBtns=$('diagBtns'),
       riddleUI=$('riddleUI'),riddleQ=$('riddleQ'),riddleA=$('riddleA'),riddleGo=$('riddleGo'),
       riddleHintBtn=$('riddleHintBtn'),riddleHint=$('riddleHint'),
-      ptUI=$('ptUI'),ptGrid=$('ptGrid');
+      ptUI=$('ptUI'),ptGrid=$('ptGrid'),
+      dotsUI=$('dotsUI'),dotsCv=$('dotsCv'),dotsCap=$('dotsCap');
 function hidePanels(){ modalText.style.display='none'; keypadUI.classList.add('hidden');
   diagUI.classList.add('hidden'); riddleUI.classList.add('hidden'); ptUI.classList.add('hidden');
-  modalCard.classList.remove('wide'); }
+  dotsUI.classList.add('hidden'); modalCard.classList.remove('wide'); }
 function showNote(title,text){ modal.classList.add('open'); modalCard.classList.remove('dark');
   modalTitle.textContent=title; modalText.textContent=text; modalText.style.display='block';
   keypadUI.classList.add('hidden'); diagUI.classList.add('hidden');
-  riddleUI.classList.add('hidden'); ptUI.classList.add('hidden'); exitPointer(); }
+  riddleUI.classList.add('hidden'); ptUI.classList.add('hidden'); dotsUI.classList.add('hidden'); exitPointer(); }
 /* generic keypad */
 let padCtx=null, keypadEntry='';
 function openKeypad(title,correct,onOk,wrongMsg){
@@ -1145,18 +1213,19 @@ function openDiag(){
   modalTitle.textContent=T('clipDiagTitle'); hidePanels();
   modalText.style.display='none'; diagUI.classList.remove('hidden'); exitPointer();
   diagTable.innerHTML='<table><tr><th>'+T('thSub')+'</th><th>'+T('thH')+'</th><th>'+T('thW')+'</th><th>'+T('thStrain')+'</th></tr>'+
-    SUBJECTS.map(s=>'<tr><td>'+s.id+'</td><td>'+s.h+' '+T('cm')+'</td><td>'+s.w+' '+T('kg')+'</td><td><b>'+s.virus+'</b></td></tr>').join('')+'</table>'+
+    SUBJECTS.map(s=>'<tr><td>'+s.id+'</td><td>'+s.h+' '+T('cm')+'</td><td>'+s.w+' '+T('kg')+'</td><td><b>V-'+virusCode(s.virus)+'</b></td></tr>').join('')+'</table>'+
     '<p style="font-size:12px">'+T('readingIs')+' '+(state.measured?('<b>'+ME.h+' '+T('cm')+' / '+ME.w+' '+T('kg')+'</b>'):('<i>'+T('notMeasured')+'</i>'))+'</p>';
   diagBtns.innerHTML='';
   Object.keys(VIRUS_EL).forEach(v=>{
-    const b=document.createElement('button'); b.textContent=v;
+    const code=virusCode(v);
+    const b=document.createElement('button'); b.textContent='V-'+code;
     b.onclick=()=>{
       if(!state.measured){ beep(180,.15,'square',.06); toast(T('needMeasure')); return; }
-      if(v===ME.virus){ state.diagnosed=v; closeModal(); objective('obj1'); renderInv();
+      if(v===ME.virus){ state.diagnosed=code; closeModal(); objective('obj1'); renderInv();
         beep(880,.1); setTimeout(()=>beep(1174,.15),120);
-        toast(T('diagnosedToast',v));
+        toast(T('diagnosedToast',code));
         lockPointer();
-      } else { beep(150,.2,'sawtooth',.12); toast(T('wrongStrainV',v)); }
+      } else { beep(150,.2,'sawtooth',.12); toast(T('wrongStrainV','V-'+code)); }
     };
     diagBtns.appendChild(b); });
 }
@@ -1241,7 +1310,7 @@ function fmt(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).p
 
 /* ================= COLLISION (per room) ================= */
 const solidsLab=[
-  {x:-2.6,z:.6,r:1.2},{x:-.6,z:.6,r:.6},{x:5.5,z:-3.2,r:1.1},
+  {x:-3.5,z:.6,r:1.0},{x:-1.1,z:.6,r:1.0},{x:-.15,z:.9,r:.6},{x:5.5,z:-3.2,r:1.1},
   {x:-1.2,z:5.55,r:1.3},{x:1.2,z:5.55,r:1.3},
   {x:-.4,z:-5.5,r:1.1},{x:-5.55,z:3.0,r:1.1},{x:4.93,z:4.9,r:.65},
   {x:4.3,z:-1.4,r:.45},{x:-3.7,z:1.9,r:.35},{x:-1.3,z:2.1,r:.35},
