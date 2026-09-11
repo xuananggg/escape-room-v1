@@ -355,11 +355,14 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   mixTitle:'⚗️ Mixing bench — liquid bomb',
   mixInstr:'Ward mixer protocol:\nMIX 7 with 4 — then STIR well.\nSHAKE 11. BURN 2.\nThen MIX ALL together.\n\n(The numbers are pH levels — not tube numbers.)',
   mixBeakerEmpty:'Beaker: empty',
+  mixBeaker:list=>'Beaker: '+list,
   mixAdded:ph=>'Added pH '+ph+'.',
   mixWrong:'The mixture fizzles grey and dies. Start over.',
   mixWeak:'You can barely stand... cure yourself first.',
   mixBuilt:'Unstable liquid bomb acquired!',
   mixEmpty:'Nothing left to mix.',
+  bombPosterT:'LIQUID BOMB PROTOCOL',
+  bombPosterB:'MIX pH 7 + pH 4 → STIR\nSHAKE pH 11\nBURN pH 2\nMIX ALL → BOMB\n\nNumbers are pH levels!',
   testFirst:'Test that tube’s pH first!',
   testedToast:(t,ph)=>'Tube '+t+' tests at pH '+ph+'.',
   meterLbl:'pH meter — click a tube to test it',
@@ -457,11 +460,14 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   mixTitle:'⚗️ 混合台——液体炸弹',
   mixInstr:'混合协议：\n将 7 与 4 混合——然后充分搅拌。\n摇晃 11。加热 2。\n最后全部混合。\n\n（数字是pH值——不是试管编号。）',
   mixBeakerEmpty:'烧杯：空',
+  mixBeaker:list=>'烧杯：'+list,
   mixAdded:ph=>'已加入 pH '+ph+'。',
   mixWrong:'混合物冒泡变灰，失败了。重新开始。',
   mixWeak:'你连站都站不稳……先治愈自己。',
   mixBuilt:'获得不稳定的液体炸弹！',
   mixEmpty:'没什么可混合了。',
+  bombPosterT:'液体炸弹协议',
+  bombPosterB:'混合 pH 7 + pH 4 → 搅拌\n摇晃 pH 11\n加热 pH 2\n全部混合 → 炸弹\n\n数字是pH值！',
   testFirst:'先测这支试管的pH！',
   testedToast:(t,ph)=>'试管 '+t+' 的pH值为 '+ph+'。',
   meterLbl:'pH计——点击试管进行测试',
@@ -677,9 +683,9 @@ function tryDoor(){
 /* ---- DIAGNOSIS TABLE (north-east, by the periodic table) ---- */
 const tableGroup=new THREE.Group(); tableGroup.position.set(2.4,0,-4.0); scene.add(tableGroup);
 {
-  const top=new THREE.Mesh(new RoundedBoxGeometry(2.8,.08,1.0,2,.02),matBench);
+  const top=new THREE.Mesh(new RoundedBoxGeometry(3.4,.08,1.0,2,.02),matBench);
   top.position.set(0,.76,0); top.castShadow=top.receiveShadow=true; tableGroup.add(top);
-  [[-1.32,-.42],[1.32,-.42],[-1.32,.42],[1.32,.42]].forEach(([x,z])=>{
+  [[-1.6,-.42],[1.6,-.42],[-1.6,.42],[1.6,.42]].forEach(([x,z])=>{
     const l=new THREE.Mesh(new THREE.BoxGeometry(.08,.76,.08),matFrame);
     l.position.set(x,.38,z); l.castShadow=true; tableGroup.add(l); });
   const board=new THREE.Mesh(new THREE.BoxGeometry(.5,.02,.82),matFrame);
@@ -718,7 +724,7 @@ const tableGroup=new THREE.Group(); tableGroup.position.set(2.4,0,-4.0); scene.a
   findGroup(micro).forEach(m=>reg(m,'micro','microLbl',()=>{ beep(600,.06); toast(T('microHint')); }));
   // capsule tray: EVERY element used by any strain (player must know which are theirs)
   const trayBase=new THREE.Mesh(new THREE.BoxGeometry(1.35,.04,.5),matFrame);
-  trayBase.position.set(.29,.82,0); trayBase.castShadow=true; tableGroup.add(trayBase);
+  trayBase.position.set(.69,.82,0); trayBase.castShadow=true; tableGroup.add(trayBase);
   ['Na','C','O','Fe','Ne','He','Li','Co','Mg','Ar','H','N','Ni','K'].forEach((sym,ci)=>{
     const cg=new THREE.Group();
     const cbody=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.1,10),
@@ -732,7 +738,7 @@ const tableGroup=new THREE.Group(); tableGroup.position.set(2.4,0,-4.0); scene.a
     const slab=new THREE.Mesh(new THREE.PlaneGeometry(.11,.055),
       new THREE.MeshBasicMaterial({map:symT,side:THREE.DoubleSide}));
     slab.position.set(0,.07,0); slab.rotation.x=-.35; cg.add(slab);
-    cg.position.set(-.25+(ci%7)*.18,.865,(ci<7?-.13:.13)); tableGroup.add(cg);
+    cg.position.set(.15+(ci%7)*.18,.865,(ci<7?-.13:.13)); tableGroup.add(cg);
     cg.userData.home=cg.position.clone();
     findGroup(cg).forEach(m=>reg(m,'capsule','capLbl',()=>openDots(sym,cg),sym));
   });
@@ -741,17 +747,18 @@ const tableGroup=new THREE.Group(); tableGroup.position.set(2.4,0,-4.0); scene.a
   tubeSlots=[...tubePH].sort(()=>Math.random()-.5);
 }
 
-/* ---- SIDE BENCH: test-tube rack + pH meter (west) ---- */
-const tubeTable=new THREE.Group(); tubeTable.position.set(-2.6,0,0.6); scene.add(tubeTable);
-let meterCtx, meterTex;
+/* ---- BOMB BENCH: test-tube rack + pH meter + burner + mixing beaker (west wall) ---- */
+const tubeTable=new THREE.Group(); tubeTable.position.set(-5.2,0,0.6); scene.add(tubeTable);
+let meterCtx, meterTex, beakerLiq, stirRod, flameM, flameLight;
+let stirT=0, burnT=0;
 {
-  const top=new THREE.Mesh(new RoundedBoxGeometry(1.6,.08,1.0,2,.02),matBench);
+  const top=new THREE.Mesh(new RoundedBoxGeometry(1.2,.08,2.4,2,.02),matBench);
   top.position.y=.76; top.castShadow=top.receiveShadow=true; tubeTable.add(top);
-  [[-.72,-.42],[.72,-.42],[-.72,.42],[.72,.42]].forEach(([x,z])=>{
+  [[-.52,-1.12],[.52,-1.12],[-.52,1.12],[.52,1.12]].forEach(([x,z])=>{
     const l=new THREE.Mesh(new THREE.BoxGeometry(.08,.76,.08),matFrame);
     l.position.set(x,.38,z); l.castShadow=true; tubeTable.add(l); });
   const rackBase=new THREE.Mesh(new THREE.BoxGeometry(.7,.04,.5),matFrame);
-  rackBase.position.set(-.25,.82,0); rackBase.castShadow=true; tubeTable.add(rackBase);
+  rackBase.position.set(0,.82,-.75); rackBase.castShadow=true; tubeTable.add(rackBase);
   tubeSlots.forEach((ph,i)=>{
     const tg=new THREE.Group();
     const glass=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,.24,10),
@@ -765,17 +772,17 @@ let meterCtx, meterTex;
     const tag=new THREE.Mesh(new THREE.PlaneGeometry(.13,.065),
       new THREE.MeshBasicMaterial({map:tT,side:THREE.DoubleSide}));
     tag.position.set(0,.2,0); tg.add(tag);
-    tg.position.set(-.52+(i%3)*.18,.84,(i<3?-.11:.11)); tubeTable.add(tg);
+    tg.position.set(-.18+(i%3)*.18,.84,(i<3?-.86:-.64)); tubeTable.add(tg);
     const rec={group:tg,liquid:fluid,ph,tested:false};
     tg.userData.home=tg.position.clone();
     tubeObjs.push(rec);
     findGroup(tg).forEach(m=>reg(m,'tube','tubeLbl',()=>testTube(i),'T'+(i+1)));
   });
   reg(rackBase,'rack','tubesLbl',tryMix);
-  // pH meter with live display + probe
+  // pH meter (screen faces the room) + probe stand
   const mbox=new THREE.Mesh(new RoundedBoxGeometry(.3,.24,.2,2,.02),
     new THREE.MeshStandardMaterial({color:0xdfe7ee,roughness:.4,metalness:.2}));
-  mbox.position.set(.55,.92,.15); mbox.castShadow=true; tubeTable.add(mbox);
+  mbox.position.set(-.35,.92,.1); mbox.castShadow=true; tubeTable.add(mbox);
   const mcan=document.createElement('canvas'); mcan.width=128; mcan.height=64;
   meterCtx=mcan.getContext('2d');
   meterTex=new THREE.CanvasTexture(mcan); meterTex.colorSpace=THREE.SRGBColorSpace;
@@ -785,12 +792,72 @@ let meterCtx, meterTex;
   meterDraw('pH --'); tubeTable.userData.meterDraw=meterDraw;
   const mscreen=new THREE.Mesh(new THREE.PlaneGeometry(.24,.12),
     new THREE.MeshBasicMaterial({map:meterTex}));
-  mscreen.position.set(.55,.95,.251); tubeTable.add(mscreen);
-  const parm=new THREE.Mesh(new THREE.BoxGeometry(.3,.04,.04),matMetal);
-  parm.position.set(.42,1.18,-.1); tubeTable.add(parm);
-  const probe=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.2,8),matMetal);
-  probe.position.set(.3,1.08,-.1); tubeTable.add(probe);
+  mscreen.position.set(-.19,.95,.1); mscreen.rotation.y=Math.PI/2; tubeTable.add(mscreen);
+  const ppole=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.5,8),matMetal);
+  ppole.position.set(.15,1.05,-.42); tubeTable.add(ppole);
+  const parm=new THREE.Mesh(new THREE.BoxGeometry(.04,.04,.34),matMetal);
+  parm.position.set(.15,1.28,-.26); tubeTable.add(parm);
+  const probe=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,.18,8),matMetal);
+  probe.position.set(.15,1.11,-.1); tubeTable.add(probe);
+  // bunsen burner + flame (hidden until BURN)
+  const bbase=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,.03,14),matFrame);
+  bbase.position.set(0,.815,.55); tubeTable.add(bbase);
+  const barrel=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.18,10),matMetal);
+  barrel.position.set(0,.92,.55); tubeTable.add(barrel);
+  flameM=new THREE.Mesh(new THREE.ConeGeometry(.05,.16,12),
+    new THREE.MeshBasicMaterial({color:0xff9a3c,transparent:true,opacity:.9}));
+  flameM.position.set(0,1.08,.55); flameM.visible=false; tubeTable.add(flameM);
+  flameLight=new THREE.PointLight(0xff8c3a,0,3,2); flameLight.position.set(0,1.15,.55); tubeTable.add(flameLight);
+  // mixing beaker (liquid level + color follow the recipe) + stir rod
+  const beaker=new THREE.Mesh(new THREE.CylinderGeometry(.09,.08,.22,16,1,true),
+    new THREE.MeshPhysicalMaterial({color:0xcfeeff,transparent:true,opacity:.3,roughness:.06,clearcoat:1,side:THREE.DoubleSide}));
+  beaker.position.set(-.35,.91,.55); tubeTable.add(beaker);
+  beakerLiq=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,1,14),
+    new THREE.MeshStandardMaterial({color:0x46b978,roughness:.35,emissive:0x46b978,emissiveIntensity:.25,transparent:true,opacity:.9}));
+  beakerLiq.scale.y=.001; beakerLiq.visible=false; beakerLiq.position.set(-.35,.81,.55); tubeTable.add(beakerLiq);
+  stirRod=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.3,8),matMetal);
+  stirRod.position.set(-.35,.95,.55); stirRod.rotation.z=.18; tubeTable.add(stirRod);
+  // pail of rinse water on the bench + spare pail on the floor
+  const pail=new THREE.Mesh(new THREE.CylinderGeometry(.11,.09,.22,14),
+    new THREE.MeshStandardMaterial({color:0x9fb2c2,roughness:.4,metalness:.6,side:THREE.DoubleSide}));
+  pail.position.set(.35,.91,.55); pail.castShadow=true; tubeTable.add(pail);
+  const pwater=new THREE.Mesh(new THREE.CircleGeometry(.095,16),
+    new THREE.MeshStandardMaterial({color:0x2e6d8b,roughness:.2}));
+  pwater.rotation.x=-Math.PI/2; pwater.position.set(.35,.97,.55); tubeTable.add(pwater);
+  const fpail=new THREE.Mesh(new THREE.CylinderGeometry(.14,.11,.3,14),
+    new THREE.MeshStandardMaterial({color:0x9fb2c2,roughness:.4,metalness:.6,side:THREE.DoubleSide}));
+  fpail.position.set(-4.75,.15,2.35); fpail.castShadow=true; scene.add(fpail);
+  const fpwater=new THREE.Mesh(new THREE.CircleGeometry(.125,16),
+    new THREE.MeshStandardMaterial({color:0x2e6d8b,roughness:.2}));
+  fpwater.rotation.x=-Math.PI/2; fpwater.position.set(-4.75,.27,2.35); scene.add(fpwater);
+  // recipe poster pinned on the west wall above the bench
+  const bombT=dynCanvasTex(340,440,(g,w,h)=>{ g.fillStyle='#f4f8fb'; g.fillRect(0,0,w,h);
+    g.fillStyle='#b00020'; g.fillRect(0,0,w,64);
+    g.fillStyle='#fff'; g.font='bold 26px sans-serif'; g.textAlign='center';
+    g.fillText(T('bombPosterT'),w/2,42);
+    g.fillStyle='#0b2b36'; g.font='bold 25px sans-serif';
+    T('bombPosterB').split('\n').forEach((ln,i)=>g.fillText(ln,w/2,130+i*52));
+    g.fillStyle='#d8a400'; for(let x=8;x<w;x+=32){ g.save(); g.translate(x,h-22); g.rotate(.5); g.fillRect(0,0,14,5); g.restore(); } });
+  const bombPoster=new THREE.Mesh(new THREE.PlaneGeometry(1.05,1.35),
+    new THREE.MeshStandardMaterial({map:bombT,roughness:.7}));
+  bombPoster.position.set(-5.93,2.0,0.6); bombPoster.rotation.y=Math.PI/2; scene.add(bombPoster);
   findGroup(tubeTable).forEach(m=>{ if(!m.userData.iid) reg(m,'meter','meterLbl',()=>{ beep(600,.06); toast(T('meterHint')); }); });
+}
+function updateBeaker(){
+  const n=state.mixAdded.length;
+  beakerLiq.visible=n>0;
+  if(!n) return;
+  beakerLiq.scale.y=Math.max(n*.035,.001);
+  beakerLiq.position.y=.81+n*.035/2;
+  let r=0,g=0,b=0; const c=new THREE.Color();
+  state.mixAdded.forEach(ph=>{ c.setHex(phCol(ph)); r+=c.r; g+=c.g; b+=c.b; });
+  beakerLiq.material.color.setRGB(r/n,g/n,b/n);
+  beakerLiq.material.emissive.copy(beakerLiq.material.color);
+}
+function resetBeaker(){
+  state.mixAdded=[]; state.mixStage=0; stirT=0; burnT=0;
+  flameM.visible=false; flameLight.intensity=0;
+  beakerLiq.visible=false; beakerLiq.material.emissiveIntensity=.25;
 }
 function testTube(i){
   const t=tubeObjs[i];
@@ -803,7 +870,7 @@ function testTube(i){
   const handW=camera.position.clone().addScaledVector(dir,.7); handW.y-=.22;
   const hand=tubeTable.worldToLocal(handW.clone());
   tweenPos(t.group,hand,.55,()=>{
-    tweenPos(t.group,new THREE.Vector3(.3,1.0,-.1),.5,()=>{
+    tweenPos(t.group,new THREE.Vector3(.15,1.0,-.1),.5,()=>{
       t.group.position.y-=.07;
       setTimeout(()=>{
         t.group.position.y+=.07;
@@ -1398,12 +1465,30 @@ function tryCoat(){
 function tryPanel(){
   if(state.blackout){ toast(T('panelFried')); return; }
   if(!state.hasBomb){ beep(180,.15,'square',.06); toast(T('pourNeed')); return; }
-  state.hasBomb=false; state.blackout=true; state.countdown=60; state.lastTick=60;
-  panelLamp.material.emissive.setHex(0x22ff44);
-  objective('obj3'); renderInv();
-  beep(220,.3,'sawtooth',.15); setTimeout(()=>beep(140,.4,'sawtooth',.15),250);
-  ceilLight.intensity=8; setTimeout(()=>{ if(!state.won&&!state.dead)ceilLight.intensity=22; },900);
-  toast(T('pourGo'),3600);
+  state.hasBomb=false; renderInv(); resetBeaker(); state.scopeBusy=true;
+  hovered=null; promptEl.style.display='none'; cross.classList.remove('active');
+  // glowing pour stream over the panel
+  const sgeo=new THREE.CylinderGeometry(.045,.06,1.3,10); sgeo.translate(0,-.65,0);
+  const stream=new THREE.Mesh(sgeo,
+    new THREE.MeshBasicMaterial({color:0x9dff57,transparent:true,opacity:.9}));
+  stream.position.set(5.68,2.3,0.8); stream.scale.y=.01; scene.add(stream);
+  const splash=new THREE.PointLight(0x9dff57,0,5,2); splash.position.set(5.68,1.4,0.8); scene.add(splash);
+  beep(300,.5,'sawtooth',.1);
+  const p0=performance.now();
+  const pour=setInterval(()=>{
+    const k=Math.min((performance.now()-p0)/900,1);
+    stream.scale.y=Math.max(k,.01); splash.intensity=6*k;
+    if(k>=1){ clearInterval(pour);
+      setTimeout(()=>{ scene.remove(stream); scene.remove(splash);
+        stream.geometry.dispose(); stream.material.dispose();
+        state.blackout=true; state.countdown=60; state.lastTick=60;
+        panelLamp.material.emissive.setHex(0x22ff44);
+        objective('obj3'); state.scopeBusy=false;
+        beep(220,.3,'sawtooth',.15); setTimeout(()=>beep(140,.4,'sawtooth',.15),250);
+        ceilLight.intensity=8; setTimeout(()=>{ if(!state.won&&!state.dead)ceilLight.intensity=22; },900);
+        toast(T('pourGo'),3600);
+      },600); }
+  },16);
 }
 
 /* ================= MODAL SYSTEM ================= */
@@ -1497,7 +1582,7 @@ function renderMix(){
     b.textContent='T'+(i+1)+(tested?(' · pH '+ph):' · ?');
     b.disabled=state.mixAdded.includes(ph);
     b.onclick=()=>tubeClick(i); mixTubes.appendChild(b); });
-  mixProg.textContent=state.mixAdded.length?('Beaker: '+state.mixAdded.join(' + ')):T('mixBeakerEmpty');
+  mixProg.textContent=state.mixAdded.length?T('mixBeaker',state.mixAdded.join(' + ')):T('mixBeakerEmpty');
   const acts={2:'actStir',4:'actShake',6:'actBurn',7:'actMix'};
   if(acts[state.mixStage]){ mixAct.textContent=T(acts[state.mixStage]); mixAct.classList.remove('hidden'); }
   else mixAct.classList.add('hidden');
@@ -1507,8 +1592,8 @@ function tubeClick(i){
   if(need===undefined||state.mixAdded.includes(ph)) return;
   if(!tubeObjs[i]||!tubeObjs[i].tested){ beep(180,.15,'square',.06); toast(T('testFirst')); return; }
   if(ph===need){ state.mixAdded.push(ph); state.mixStage++; beep(700,.07);
-    toast(T('mixAdded',ph)); renderMix();
-  } else { state.mixAdded=[]; state.mixStage=0; beep(150,.25,'sawtooth',.15);
+    toast(T('mixAdded',ph)); updateBeaker(); renderMix();
+  } else { resetBeaker(); beep(150,.25,'sawtooth',.15);
     toast(T('mixWrong')); renderMix(); }
 }
 mixAct.onclick=()=>{
@@ -1516,7 +1601,10 @@ mixAct.onclick=()=>{
     state.hasBomb=true; state.mixStage=0; state.mixAdded=[];
     closeModal(); renderInv(); beep(660,.1); setTimeout(()=>beep(990,.15),130);
     toast(T('mixBuilt'),3200); lockPointer();
-  } else if([2,4,6].includes(state.mixStage)){ state.mixStage++; beep(600,.07); renderMix(); }
+  } else if(state.mixStage===2){ state.mixStage++; stirT=1.6; beep(600,.07); renderMix();
+  } else if(state.mixStage===4){ state.mixStage++; beep(600,.07); renderMix();
+  } else if(state.mixStage===6){ state.mixStage++; burnT=2.5;
+    flameM.visible=true; beep(300,.25,'sawtooth',.12); renderMix(); }
 };
 /* periodic table study view */
 function openPT(){
@@ -1583,7 +1671,8 @@ function fmt(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).p
 
 /* ================= COLLISION (per room) ================= */
 const solidsLab=[
-  {x:1.7,z:-4,r:1.0},{x:3.1,z:-4,r:1.0},{x:4.3,z:-4.6,r:.6},{x:-2.6,z:.6,r:1.0},{x:5.5,z:-3.2,r:1.1},
+  {x:1.4,z:-4,r:1.0},{x:3.4,z:-4,r:1.0},{x:4.3,z:-4.6,r:.6},{x:5.5,z:-3.2,r:1.1},
+  {x:-5.2,z:-.2,r:.9},{x:-5.2,z:1.5,r:.85},{x:-4.75,z:2.35,r:.25},
   {x:-1.2,z:5.55,r:1.3},{x:1.2,z:5.55,r:1.3},
   {x:-.4,z:-5.5,r:1.1},{x:-5.55,z:3.0,r:1.1},{x:4.93,z:4.9,r:.65},
   {x:4.3,z:-1.4,r:.45},{x:-3.7,z:1.9,r:.35},{x:-1.3,z:2.1,r:.35},
@@ -1670,6 +1759,13 @@ function loop(){
     if(state.fridgeOpen && !state.cured){ const t=performance.now()*.003;
       vials.forEach((v,i)=>{ v.group.position.y=v.baseY+Math.sin(t+i*1.7)*.02; }); }
     if(state.hasCard===false && cardGroup.visible){ cardGroup.rotation.y=performance.now()*.002; }
+    // bomb-bench FX: stirring rod spin + burner flame flicker
+    if(stirT>0){ stirT-=dt; stirRod.rotation.y+=12*dt; }
+    if(burnT>0){ burnT-=dt;
+      flameM.scale.setScalar(1+Math.sin(performance.now()*.06)*.18);
+      flameLight.intensity=2.5+Math.sin(performance.now()*.05)*1.5;
+      beakerLiq.material.emissiveIntensity=.4+Math.abs(Math.sin(performance.now()*.02))*.4;
+      if(burnT<=0){ flameM.visible=false; flameLight.intensity=0; beakerLiq.material.emissiveIntensity=.25; } }
   }
   for(let i=tweens.length-1;i>=0;i--){ const tw=tweens[i];
     let k=(performance.now()-tw.t0)/tw.dur; if(k>=1)k=1;
