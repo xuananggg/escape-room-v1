@@ -197,6 +197,7 @@
     <ul>
       <li id="ctl1">🖱️ Click <b>START</b> → mouse looks around (pointer lock)</li>
       <li id="ctl2"><code>W A S D</code> to walk • <code>E</code> / click to interact</li>
+      <li id="ctl3">Press <code>N</code> anytime for sketch notes (stays open beside clues)</li>
     </ul>
     <button class="btn" id="startBtn">▶ &nbsp;WAKE UP, SUBJECT 07</button>
   </div>
@@ -326,6 +327,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   startStory:'You wake on a surgery bed, head pounding, wristband: <b>SUBJECT 07</b>.<br><br>The patient in the next bed is dead. The ward door is locked with a cipher lock.<br><br>Beyond this ward lies the cure for the virus in your veins. Find it, consume it — and escape.',
   ctl1:'🖱️ Click <b>START</b> → mouse looks around (pointer lock)',
   ctl2:'<code>W A S D</code> to walk • <code>E</code> / click to interact',
+  ctl3:'Press <code>N</code> anytime for sketch notes (stays open beside clues)',
   startBtn:'▶ &nbsp;WAKE UP, SUBJECT 07',
   objH:'◉ TRIAL PROTOCOL', obj1:'Step 1: Identify the virus', obj2:'Step 2: Find and consume the cure',
   obj3:'Step 3: Build the bomb and overload the electrics', obj4:'Step 4: Find the access card and escape in 60 seconds',
@@ -448,6 +450,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   startStory:'你在手术室的病床上醒来，头痛欲裂，手腕上戴着：<b>07号受试者</b>。<br><br>隔壁床的病人已经死了。病房门被密码锁锁住。<br><br>病房之外，藏着你体内病毒的解药。找到它，服下它——然后逃出去。',
   ctl1:'🖱️ 点击 <b>开始</b> → 鼠标环视（指针锁定）',
   ctl2:'<code>W A S D</code> 行走 • <code>E</code> / 点击 进行互动',
+  ctl3:'随时按 <code>N</code> 打开速写笔记（可与线索并排查看）',
   startBtn:'▶ &nbsp;醒来吧，07号受试者',
   objH:'◉ 试验流程', obj1:'第一步：确认病毒', obj2:'第二步：找到解药并服下',
   obj3:'第三步：制造炸弹并破坏电力系统', obj4:'第四步：找到门禁卡并在60秒内逃离',
@@ -572,6 +575,7 @@ function setLang(l){ LANG=l;
   $('langEN').classList.toggle('on',l==='en'); $('langZH').classList.toggle('on',l==='zh');
   $('startSub').textContent=T('startSub'); $('startStory').innerHTML=T('startStory');
   $('ctl1').innerHTML=T('ctl1'); $('ctl2').innerHTML=T('ctl2'); $('startBtn').innerHTML=T('startBtn');
+  $('ctl3').innerHTML=T('ctl3');
   $('objH').textContent=T('objH'); $('obj0').textContent=T('obj0'); $('obj1').textContent=T('obj1');
   $('obj2').textContent=T('obj2'); $('obj3').textContent=T('obj3'); $('obj4').textContent=T('obj4');
   $('hudHint').innerHTML=T('hudHint');
@@ -1123,7 +1127,7 @@ function closeScope(){
   state.scopeOpen=false;
   if(scopeCg){ const cg=scopeCg; scopeCg=null; state.scopeBusy=true;
     tweenPos(cg,cg.userData.home,.6,()=>{ state.scopeBusy=false; }); }
-  if(state.playing&&!state.won)lockPointer();
+  if(state.playing&&!state.won&&!state.dead)relock();
 }
 $('scopeClose').onclick=closeScope;
 
@@ -1668,7 +1672,7 @@ function buildPad(){ keypadGrid.innerHTML='';
 function submitPad(){
   if(keypadEntry===padCtx.correct){
     closeModal(); const cb=padCtx.onOk; padCtx=null; cb();
-    lockPointer();
+    relock();
   } else { beep(150,.25,'sawtooth',.15); keypadDisplay.style.color='#ff6b6b';
     setTimeout(()=>keypadDisplay.style.color='#4ae3ff',600);
     toast(padCtx.wrongMsg); keypadEntry=''; updPad(); }
@@ -1700,7 +1704,7 @@ function openDiag(){
       if(v===ME.virus){ state.diagnosed=code; closeModal(); objective('obj1'); renderInv();
         beep(880,.1); setTimeout(()=>beep(1174,.15),120);
         toast(T('diagnosedToast',code));
-        lockPointer();
+        relock();
       } else { beep(150,.2,'sawtooth',.12); toast(T('wrongStrainV','V-'+code)); }
     };
     diagBtns.appendChild(b); });
@@ -1798,7 +1802,7 @@ function openPT(){
   }
   ptGrid.innerHTML=html;
 }
-function closeModal(){ modal.classList.remove('open'); if(state.playing&&!state.won)lockPointer(); }
+function closeModal(){ modal.classList.remove('open'); if(state.playing&&!state.won&&!state.dead)relock(); }
 $('modalClose').onclick=closeModal;
 modal.addEventListener('click',e=>{ if(e.target===modal)closeModal(); });
 
@@ -1837,14 +1841,15 @@ renderer.domElement.addEventListener('click',()=>{ if(state.playing&&!modal.clas
 renderer.domElement.addEventListener('contextmenu',e=>{ e.preventDefault();
   if(state.playing&&!modal.classList.contains('open')&&!state.scopeOpen)putBack(); });
 function lockPointer(){ renderer.domElement.requestPointerLock?.(); }
+function relock(){ if($('pinNotes').classList.contains('hidden'))lockPointer(); }
 function exitPointer(){ document.exitPointerLock?.(); }
 document.addEventListener('pointerlockchange',()=>{
   state.locked=document.pointerLockElement===renderer.domElement;
-  if(!state.locked&&state.playing&&!state.won&&!state.dead&&!modal.classList.contains('open'))$('pauseScreen').classList.remove('hidden');
+  if(!state.locked&&state.playing&&!state.won&&!state.dead&&!modal.classList.contains('open')&&$('pinNotes').classList.contains('hidden'))$('pauseScreen').classList.remove('hidden');
   else $('pauseScreen').classList.add('hidden');
 });
 $('startBtn').onclick=()=>{ $('startScreen').classList.add('hidden'); startGame(); };
-$('resumeBtn').onclick=()=>{ $('pauseScreen').classList.add('hidden'); lockPointer(); };
+$('resumeBtn').onclick=()=>{ $('pauseScreen').classList.add('hidden'); $('pinNotes').classList.add('hidden'); lockPointer(); };
 $('restartBtn').onclick=()=>location.reload();
 $('restartBtn2').onclick=()=>location.reload();
 $('retryBtn').onclick=()=>location.reload();
