@@ -59,6 +59,15 @@
     margin-top:16px; width:100%; transition:transform .1s, filter .15s; }
   .btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
   .btn.ghost { background:transparent; border:1px solid #394160; color:#cdd3ea; margin-top:10px; }
+  #boardWrap { margin:14px 0 4px; background:#0d1226; border:1px solid #2a3355; border-radius:12px;
+    padding:12px 16px; text-align:left; }
+  #boardWrap h3 { font-size:13px; letter-spacing:.12em; color:#ffd54a; margin-bottom:8px; }
+  #boardList { list-style:none; margin:0; padding:0; font-size:14px; }
+  #boardList li { display:flex; justify-content:space-between; padding:5px 4px;
+    border-bottom:1px solid rgba(255,255,255,.06); color:#c9cee6; font-variant-numeric:tabular-nums; }
+  #boardList li:last-child { border-bottom:none; }
+  #boardList li.me { color:#7ee2a8; font-weight:800; }
+  #boardList .rank { margin-right:8px; }
   .hidden { display:none !important; }
   .story { background:#0d1226; border-left:3px solid #4ae3ff; padding:12px 14px; border-radius:0 10px 10px 0;
     font-size:13.5px; line-height:1.65; color:#d6dbee; margin:12px 0; font-style:italic; }
@@ -66,6 +75,38 @@
   #flash { position:fixed; inset:0; z-index:45; background:#2bff88; opacity:0; pointer-events:none; transition:opacity .8s; }
   #vignette { position:fixed; inset:0; z-index:10; pointer-events:none;
     background:radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,.5) 100%); }
+  #drinkFx { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center;
+    flex-direction:column; gap:10px; pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 40%, rgba(43,255,136,.22) 100%); }
+  #drinkFx.open { display:flex; animation:gulpPulse 1s ease-in-out infinite; }
+  #drinkVial { font-size:84px; filter:drop-shadow(0 8px 24px rgba(43,255,136,.6));
+    animation:drinkTilt 1.8s ease-in-out forwards; }
+  #drinkTxt { color:#c8ffd9; font-size:18px; font-weight:800; letter-spacing:.2em;
+    text-shadow:0 2px 12px #000; animation:gulpPulse .6s ease-in-out infinite; }
+  #drinkBar { width:220px; height:10px; border-radius:6px; background:rgba(255,255,255,.15);
+    border:1px solid rgba(255,255,255,.3); overflow:hidden; }
+  #drinkFill { height:100%; width:100%; background:linear-gradient(90deg,#2bff88,#4ae3ff);
+    border-radius:6px; transition:width .1s linear; }
+  @keyframes drinkTilt { 0% { transform:rotate(0deg) translateY(0); }
+    30% { transform:rotate(-18deg) translateY(-8px); }
+    70% { transform:rotate(-32deg) translateY(-12px) scale(1.08); }
+    100% { transform:rotate(-28deg) translateY(-10px) scale(1.05); } }
+  @keyframes gulpPulse { 0%,100% { opacity:1; } 50% { opacity:.65; } }
+  #wakeBlur { position:fixed; inset:0; z-index:44; pointer-events:none; display:none;
+    backdrop-filter:blur(14px) brightness(.55); background:rgba(0,0,0,.35); }
+  #eyelids { position:fixed; inset:0; z-index:45; pointer-events:none; display:none; }
+  #lidTop,#lidBot { position:absolute; left:0; right:0; height:50vh; background:#000;
+    transition:height .12s linear; }
+  #lidTop { top:0; } #lidBot { bottom:0; }
+  #scare { position:fixed; inset:0; z-index:95; display:none; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 50% 45%, rgba(120,0,0,.9), rgba(0,0,0,.97));
+    pointer-events:none; }
+  #scare.open { display:flex; }
+  #scareFace { font-size:42vmin; line-height:1; animation:scareShake .1s linear infinite;
+    filter:drop-shadow(0 0 60px rgba(255,0,0,.8)); }
+  @keyframes scareShake { 0%{transform:translate(0,0) scale(1);} 25%{transform:translate(-12px,8px) scale(1.04);}
+    50%{transform:translate(10px,-10px) scale(1.02);} 75%{transform:translate(-8px,-6px) scale(1.05);}
+    100%{transform:translate(0,0) scale(1);} }
   #modal { position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center;
     background:rgba(0,0,0,.55); padding:18px; }
   #modal.open { display:flex; }
@@ -87,6 +128,9 @@
   #notesBtn { pointer-events:auto; cursor:pointer; margin-top:8px; width:100%; background:#1c2347;
     border:1px solid #3a4672; color:#ffd54a; border-radius:10px; padding:7px 10px; font-size:12px; font-weight:700; }
   #notesBtn:hover { background:#263060; }
+  #notesHint { margin-top:6px; font-size:11px; font-weight:700; color:#ffd54a; text-align:center;
+    background:rgba(255,213,74,.12); border:1px dashed rgba(255,213,74,.55);
+    border-radius:8px; padding:4px 8px; }
   #pinNotes { position:fixed; right:14px; top:50%; transform:translateY(-50%); z-index:80;
     width:302px; background:#f5edd6; border:1px solid #b9a86a; border-radius:14px;
     padding:14px; box-shadow:0 20px 60px rgba(0,0,0,.6); }
@@ -106,13 +150,6 @@
   #diagBtns button { padding:12px; font-size:15px; font-weight:800; border-radius:10px; cursor:pointer;
     border:1px solid #6b5d1f; background:#2a2410; color:#ffd54a; }
   #diagBtns button:hover { filter:brightness(1.25); }
-  #riddleQ { font-size:16px; font-weight:700; margin:8px 0 12px; }
-  #riddleA { width:100%; padding:12px; font-size:16px; border-radius:10px; border:2px solid #6b5d1f; }
-  #riddleGo { margin-top:10px; width:100%; padding:12px; font-size:15px; font-weight:800; border-radius:10px;
-    border:none; background:#ffd54a; color:#111; cursor:pointer; }
-  #riddleHintBtn { margin-top:8px; width:100%; padding:9px; font-size:13px; font-weight:700; border-radius:10px;
-    border:1px solid #6b5d1f; background:transparent; color:#8a7520; cursor:pointer; }
-  #riddleHint { margin-top:8px; font-size:13px; color:#5a4a10; background:#fdf3d0; border-radius:8px; padding:8px 10px; }
   #ptGrid { display:grid; grid-template-columns:repeat(18,1fr); gap:3px; margin-top:8px; }
   #ptGrid .cell { border-radius:4px; background:#dfe7ee; border:1px solid #9fb2c2; text-align:center; padding:2px 0; }
   #ptGrid .cell small { display:block; font-size:7px; color:#47606f; }
@@ -147,6 +184,27 @@
   #langRow button { flex:1; padding:10px; font-size:14px; font-weight:800; border-radius:10px; cursor:pointer;
     background:transparent; border:1px solid #394160; color:#cdd3ea; }
   #langRow button.on { background:#4ae3ff; border-color:#4ae3ff; color:#06121a; }
+  #modeRow { display:flex; gap:8px; margin-top:14px; }
+  #modeRow button { flex:1; padding:10px; font-size:14px; font-weight:800; border-radius:10px; cursor:pointer;
+    background:transparent; border:1px solid #394160; color:#cdd3ea; }
+  #modeRow button.on { background:#4ae3ff; border-color:#4ae3ff; color:#06121a; }
+  #mpCountRow { display:flex; gap:8px; margin-top:10px; }
+  #mpCountRow button { flex:1; padding:10px; font-size:15px; font-weight:800; border-radius:10px; cursor:pointer;
+    background:transparent; border:1px solid #394160; color:#cdd3ea; }
+  #mpCountRow button.on { background:#ffd54a; border-color:#ffd54a; color:#111; }
+  #mpNet { margin-top:12px; background:#0d1226; border:1px solid #2a3355; border-radius:12px; padding:12px 14px; }
+  #mpNet h3 { font-size:12px; letter-spacing:.12em; color:#ffd54a; margin-bottom:8px; }
+  #mpNet .row { display:flex; gap:8px; margin-top:8px; }
+  #mpNet input { flex:1; padding:10px; border-radius:10px; border:1px solid #394160; background:#0a0e20;
+    color:#fff; font-size:14px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+  #mpNet button { padding:10px 12px; font-size:13px; font-weight:800; border-radius:10px; cursor:pointer;
+    background:#1c2347; border:1px solid #3a4672; color:#ffd54a; }
+  #mpNet button.primary { background:#ffd54a; border-color:#ffd54a; color:#111; }
+  #mpCode { font-size:22px; font-weight:800; letter-spacing:.18em; color:#4ae3ff; text-align:center;
+    background:#0a0e20; border:1px dashed #4ae3ff; border-radius:10px; padding:8px; margin-top:8px; }
+  #mpPlayers { margin-top:8px; font-size:13px; color:#c9cee6; text-align:center; }
+  #mpHint { margin-top:6px; font-size:11px; color:#8a90a8; text-align:center; line-height:1.5; }
+  #mpPill { margin-top:8px; font-size:11px; color:#ffd54a; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -154,6 +212,7 @@
   "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
 } }
 </script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -167,7 +226,7 @@
       <div id="obj3">Step 3: Build the bomb and overload the electrics</div>
       <div id="obj4">Step 4: Find the access card and escape in 60 seconds</div>
     </div>
-    <div class="pill">⏱ <span id="timer">00:00</span><br><span id="hudHint" style="font-size:11px;opacity:.7">click objects • <kbd>E</kbd> interact</span><br><button id="notesBtn">📝 NOTES</button></div>
+    <div class="pill">⏱ <span id="timer">00:00</span><br><span id="hudHint" style="font-size:11px;opacity:.7">click objects • <kbd>E</kbd> interact</span><br><button id="notesBtn">📝 NOTES</button><div id="notesHint">⌨️ Press <kbd>N</kbd> for notepad</div><div id="mpPill" class="hidden">🔗 <span id="mpPillTxt"></span></div></div>
   </div>
   <div id="inventory"></div>
   <button id="carryBack" style="display:none">PUT BACK (X)</button>
@@ -182,6 +241,14 @@
 </div>
 <div id="flash"></div>
 <div id="vignette"></div>
+<div id="drinkFx">
+  <div id="drinkVial">🧪</div>
+  <div id="drinkTxt">GLUG… GLUG…</div>
+  <div id="drinkBar"><div id="drinkFill"></div></div>
+</div>
+<div id="wakeBlur"></div>
+<div id="eyelids"><div id="lidTop"></div><div id="lidBot"></div></div>
+<div id="scare"><div id="scareFace">👹</div></div>
 <div id="scopeOverlay">
   <h3 id="scopeTitle"></h3>
   <canvas id="scopeCv" width="300" height="300"></canvas>
@@ -195,6 +262,16 @@
     <p id="startSub" style="color:#4ae3ff;letter-spacing:.15em;font-size:11px;font-weight:800">— HUMAN TRIAL · SECTOR 7 —</p>
     <div class="story" id="startStory">You wake on cold tile, head buzzing, a plastic wristband on your arm: <b>SUBJECT 07</b>.<br><br>You have been infected with an unknown virus. Somewhere in this lab is the cure. Find it, consume it — and escape.</div>
     <div id="langRow"><button id="langEN" class="on">English</button><button id="langZH">中文</button></div>
+    <div id="modeRow"><button id="modeSingle" class="on">🧍 SINGLE PLAYER</button><button id="modeMulti">👥 MULTIPLAYER</button></div>
+    <div id="mpCountRow" class="hidden"><button data-n="2">2 PLAYERS</button><button data-n="3">3 PLAYERS</button><button data-n="4">4 PLAYERS</button></div>
+    <div id="mpNet" class="hidden">
+      <h3>🔗 SQUAD LOBBY</h3>
+      <div class="row"><button id="hostBtn" class="primary" style="flex:1">HOST — CREATE CODE</button></div>
+      <div class="row"><input id="joinCode" placeholder="ENTER CODE e.g. K7Q2XA" maxlength="12" /><button id="joinBtn">JOIN</button></div>
+      <div id="mpCode" class="hidden">------</div>
+      <div id="mpPlayers">Squad: solo</div>
+      <div id="mpHint">Host shares the code. Everyone spawns in the same ward with shared progress.<br>Guests: paste the code → JOIN → then WAKE UP.</div>
+    </div>
     <ul>
       <li id="ctl1">🖱️ Click <b>START</b> → mouse looks around (pointer lock)</li>
       <li id="ctl2"><code>W A S D</code> to walk • <code>E</code> / click to interact</li>
@@ -219,6 +296,7 @@
     <p id="winStats">Time: 00:00</p>
     <div class="story" id="epilogue" style="text-align:left"></div>
     <p id="journalScore" style="color:#4ae3ff;font-size:13px"></p>
+    <div id="boardWrap"><h3>🏆 FASTEST ESCAPES — TOP 5</h3><ol id="boardList"></ol></div>
     <button class="btn" id="restartBtn">VOLUNTEER AGAIN</button>
   </div>
 </div>
@@ -289,15 +367,15 @@ const SUBJECTS=[
 const playerIdx=Math.floor(Math.random()*SUBJECTS.length);
 const ME=SUBJECTS[playerIdx];
 console.log('%cSUBJECT 07 is '+ME.id+' '+ME.h+'cm '+ME.w+'kg virus '+ME.virus+' code '+virusCode(ME.virus)+' fridge '+dotsCode(ME.virus), 'color:cyan');
-const RIDDLES=[
-  {who:'DR. CHEN',q:{en:'My badge code is 7 × 8. What is it? (number only)',zh:'我的徽章密码是 7 × 8，是多少？（只填数字）'},h:{en:'Hint: 7 × 8 is the same as 7 × 4 × 2. Or count up in sevens.',zh:'提示：7×8 也就是 7×4×2，或者7个7个地往上数。'},a:['56']},
-  {who:'DR. OKAFOR',q:{en:'What is the chemical formula for water?',zh:'水的化学式是什么？'},h:{en:'Hint: two hydrogens and one oxygen — the most famous molecule on Earth.',zh:'提示：两个氢、一个氧——地球上最著名的分子。'},a:['h2o']},
-  {who:'DR. MARSH',q:{en:'What has keys but opens no locks?',zh:'什么瓜不能吃？'},h:{en:'Hint: you are probably tapping on it right now.',zh:'提示：骂人笨的时候会说“你真是个__”。(谐音梗)'},a:['keyboard','a keyboard','傻瓜']},
-  {who:'DR. REYES',q:{en:'Quick vitals check: 15 + 27 = ? (number only)',zh:'什么鸡没有翅膀？'},h:{en:'Hint: 20 + 30 is 50… now adjust for what you added.',zh:'提示：它住在田里，呱呱叫——“鸡”只是谐音。(谐音梗)'},a:['42','田鸡']},
-  {who:'DR. VOSS',q:{en:'Which planet is called the Red Planet?',zh:'哪颗行星被称为红色星球？'},h:{en:'Hint: the fourth planet from the Sun, named after the god of war.',zh:'提示：离太阳第四近的行星，以战神命名。'},a:['mars','火星']},
-  {who:'DR. IBE',q:{en:'At how many °C does water freeze? (number only)',zh:'水在多少摄氏度结冰？（只填数字）'},h:{en:'Hint: the number where the Celsius scale begins.',zh:'提示：摄氏温标开始的那个数字。'},a:['0','zero','零']},
-  {who:'DR. LINDQVIST',q:{en:'Dosage math: 9 × 6 − 4 = ? (number only)',zh:'剂量计算：9 × 6 − 4 =？（只填数字）'},h:{en:'Hint: multiply first, then subtract.',zh:'提示：先乘后减。'},a:['50']},
-  {who:'DR. AMARI',q:{en:'What has a face and two hands but no arms or legs?',zh:'什么马不能骑？'},h:{en:'Hint: it hangs on the lab wall and goes tick-tock.',zh:'提示：它住在海里，是爸爸生宝宝的。(谐音梗)'},a:['clock','a clock','海马']},
+const LOCKERS=[
+  {who:'DR. CHEN'},
+  {who:'DR. OKAFOR'},
+  {who:'DR. MARSH'},
+  {who:'DR. REYES'},
+  {who:'DR. VOSS'},
+  {who:'DR. IBE'},
+  {who:'DR. LINDQVIST'},
+  {who:'DR. AMARI'},
 ];
 const cardLocker=Math.floor(Math.random()*8);
 console.log('%ccard locker: '+cardLocker, 'color:gold');
@@ -333,7 +411,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   objH:'◉ TRIAL PROTOCOL', obj1:'Step 1: Identify the virus', obj2:'Step 2: Find and consume the cure',
   obj3:'Step 3: Build the bomb and overload the electrics', obj4:'Step 4: Find the access card and escape in 60 seconds',
   hudHint:'click objects • <kbd>E</kbd> interact • press <kbd>N</kbd> for notepad',
-  notesBtn:'📝 NOTES', notesTitle:'📝 Field notes', notesPh:'Type clues, codes and counts here… auto-saved', notesClear:'Clear page',  pauseH:'PAUSED', pauseP:"Trial suspended. The virus waits for no one, but we'll wait.",
+  notesBtn:'📝 NOTES', notesHint:'⌨️ Press <kbd>N</kbd> for notepad', notesTitle:'📝 Field notes', notesPh:'Type clues, codes and counts here… auto-saved', notesClear:'Clear page',  pauseH:'PAUSED', pauseP:"Trial suspended. The virus waits for no one, but we'll wait.",
   resumeBtn:'RESUME', restartBtn2:'Restart trial', restartBtn:'VOLUNTEER AGAIN',
   winH:'CURED <span style="color:#7ee2a8">&amp; FREE!</span> 🎉',
   doorOpen:'The airlock is already open — go!',
@@ -377,7 +455,7 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   coatLbl:'lab coat — search the pockets', keyToast:'Locker key acquired!', coatEmpty:'Pockets empty.',
   tubesLbl:'test-tube rack — mix a batch',
   mixTitle:'⚗️ Mixing bench — liquid bomb',
-  mixInstr:'Ward mixer protocol:\nMIX 7 with 4. BURN 2 and mix it in. STIR well.\nThen MIX ALL together.\n\nCarry tubes by clicking them (X puts one back). Test tubes at the meter. Pour into the beaker. Heat the pH-2 tube over the burner flame. Stir with the rod.',
+  mixInstr:'Ward mixer protocol:\nMIX 7 with 4. BURN 2 and mix it in.\nThe batch stirs itself, then MIX ALL together.\n\nCarry tubes by clicking them (X puts one back). Test tubes at the meter. Pour into the beaker. Heat the pH-2 tube over the burner flame.',
   mixBeakerEmpty:'Beaker: empty',
   mixBeaker:list=>'Beaker: '+list,
   mixAdded:ph=>'Added pH '+ph+'.',
@@ -404,8 +482,8 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   notNow:'Nothing happens.',
   carryUse:t=>'Use '+t+' here? Click.',
   carryHold:t=>'Holding '+t+' — click empty space or press X to put it back.',
-  beakerLbl:'mixing beaker', rodLbl:'stirring rod — stir', burnerLbl:'bunsen burner',
-  stirHint:'The beaker needs stirring — click the rod or the beaker.',
+  beakerLbl:'mixing beaker', burnerLbl:'bunsen burner',
+  stirHint:'All liquids in — the batch stirs itself…',
   shakeHint:'Shake it — click the beaker.',
   burnHint:'Heat the pH-2 tube over the burner flame, then pour it in.',
   finaleHint:'One last mix — click the beaker.',
@@ -414,8 +492,6 @@ en:{ startSub:'— HUMAN TRIAL · SECTOR 7 —',
   deadP:'Sixty seconds gone. The lab — and you — are gone with it.',
   retryBtn:'TRY AGAIN',
   cardChapterSub:'ACCESS GRANTED',
-  riddleTitle:who=>'🔒 '+who+'’s locker', inputPh:'Type your answer…', riddleHintBtn:'💡 Need a hint?',
-  riddleWrong:'❌ Not quite — try again! (Math, joke or science…)',
   chTrialSub:'THE TRIAL BEGINS',
   startToast1:'🧬 Wristband: SUBJECT 07. Step 1: take your HEIGHT + WEIGHT by the table…',
   startToast2:'📏 The stadiometer + scale stand NEXT TO the table.',
@@ -456,7 +532,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   objH:'◉ 试验流程', obj1:'第一步：确认病毒', obj2:'第二步：找到解药并服下',
   obj3:'第三步：制造炸弹并破坏电力系统', obj4:'第四步：找到门禁卡并在60秒内逃离',
   hudHint:'点击物品 • <kbd>E</kbd> 互动 • 按 <kbd>N</kbd> 打开笔记',
-  notesBtn:'📝 笔记', notesTitle:'📝 调查笔记', notesPh:'在这里记录线索、密码和数字……自动保存', notesClear:'清空',
+  notesBtn:'📝 笔记', notesHint:'⌨️ 按 <kbd>N</kbd> 打开笔记', notesTitle:'📝 调查笔记', notesPh:'在这里记录线索、密码和数字……自动保存', notesClear:'清空',
   pauseH:'已暂停', pauseP:'试验暂停。病毒不会等人，但我们会等你。',
   resumeBtn:'继续', restartBtn2:'重新开始', restartBtn:'再次参加试验',
   winH:'已治愈<span style="color:#7ee2a8">并自由！</span> 🎉',
@@ -502,7 +578,7 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   coatLbl:'白大褂——翻口袋', keyToast:'获得储物柜钥匙！', coatEmpty:'口袋空了。',
   tubesLbl:'试管架——混合药剂',
   mixTitle:'⚗️ 混合台——液体炸弹',
-  mixInstr:'混合协议：\n混合 7 与 4。加热 2 并倒入。充分搅拌。\n最后全部混合。\n\n点击拿起试管（X 放回）。在pH计上测试。倒入烧杯。把 pH 2 的试管放在燃烧器火焰上加热。用搅拌棒搅拌。',
+  mixInstr:'混合协议：\n混合 7 与 4。加热 2 并倒入。\n药剂会自动搅拌，然后全部混合。\n\n点击拿起试管（X 放回）。在pH计上测试。倒入烧杯。把 pH 2 的试管放在燃烧器火焰上加热。',
   mixBeakerEmpty:'烧杯：空',
   mixBeaker:list=>'烧杯：'+list,
   mixAdded:ph=>'已加入 pH '+ph+'。',
@@ -529,8 +605,8 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   notNow:'什么都没发生。',
   carryUse:t=>'在这里使用 '+t+'？点击。',
   carryHold:t=>'拿着 '+t+' ——点击空处或按 X 放回去。',
-  beakerLbl:'混合烧杯', rodLbl:'搅拌棒——搅拌', burnerLbl:'本生灯',
-  stirHint:'烧杯需要搅拌——点击搅拌棒或烧杯。',
+  beakerLbl:'混合烧杯', burnerLbl:'本生灯',
+  stirHint:'液体已加完——药剂自动搅拌中……',
   shakeHint:'摇一摇——点击烧杯。',
   burnHint:'把 pH 2 的试管放在燃烧器火焰上加热，再倒入。',
   finaleHint:'最后混合——点击烧杯。',
@@ -538,8 +614,6 @@ zh:{ startSub:'— 人体试验 · 第7区 —',
   deadP:'60秒到了。实验室——和你一起——化为灰烬。',
   retryBtn:'再试一次',
   cardChapterSub:'已获得通行权限',
-  riddleTitle:who=>'🔒 '+who+' 的储物柜', inputPh:'输入答案……', riddleHintBtn:'💡 需要提示？',
-  riddleWrong:'❌ 不太对——再试试！（数学、笑话或科学……）',
   chTrialSub:'试验开始',
   startToast1:'🧬 手环：07号受试者。第一步：去桌旁测量身高体重……',
   startToast2:'📏 身高体重仪就在桌子旁边。',
@@ -581,6 +655,7 @@ function setLang(l){ LANG=l;
   $('obj2').textContent=T('obj2'); $('obj3').textContent=T('obj3'); $('obj4').textContent=T('obj4');
   $('hudHint').innerHTML=T('hudHint');
   $('notesBtn').textContent=T('notesBtn');
+  $('notesHint').innerHTML=T('notesHint');
   $('pauseH').textContent=T('pauseH'); $('pauseP').textContent=T('pauseP');
   $('resumeBtn').textContent=T('resumeBtn'); $('restartBtn2').textContent=T('restartBtn2');
   $('restartBtn').textContent=T('restartBtn'); $('winH').innerHTML=T('winH');
@@ -596,8 +671,8 @@ function setLang(l){ LANG=l;
 /* ================= THREE SETUP ================= */
 const app=$('app');
 const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x060d14);
-scene.fog=new THREE.Fog(0x060d14,9,26);
+scene.background=new THREE.Color(0x02040a);
+scene.fog=new THREE.Fog(0x02040a,5,18);
 const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.05,60);
 camera.rotation.order='YXZ';
 const renderer=new THREE.WebGLRenderer({antialias:true});
@@ -606,22 +681,23 @@ renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure=1.0;
+renderer.toneMappingExposure=0.9;
 app.appendChild(renderer.domElement);
 /* image-based lighting: soft studio reflections on every metal/gloss surface */
 const pmrem=new THREE.PMREMGenerator(renderer);
 scene.environment=pmrem.fromScene(new RoomEnvironment(renderer),.04).texture;
-scene.add(new THREE.AmbientLight(0x9fd8e8,.22));
-scene.add(new THREE.HemisphereLight(0xd8f6ff,0x2a3542,.32));
-const ceilLight=new THREE.PointLight(0xd8f6ff,22,24,1.6);
-ceilLight.position.set(0,3.0,0); ceilLight.castShadow=true;
-ceilLight.shadow.mapSize.set(2048,2048); scene.add(ceilLight);
-const fillLight=new THREE.PointLight(0xbfe6ff,8,24,1.6);
-fillLight.position.set(0,3.0,3.5); scene.add(fillLight);
-const lampLight=new THREE.PointLight(0x7ef0c8,0,4,2); scene.add(lampLight);
-const alarmLight=new THREE.PointLight(0xff3b5c,2,14,1.8); alarmLight.position.set(0,3.0,-5.2); scene.add(alarmLight);
-const flash=new THREE.SpotLight(0xfff2df,8,10,.55,.5,1.2); scene.add(flash); scene.add(flash.target);
-const player={ pos:new THREE.Vector3(-30,1.6,2.5), vel:new THREE.Vector3(), speed:3.2 };
+/* flashlight-led night: beam is the hero, fog swallows distance */
+const flash=new THREE.SpotLight(0xfff2df,20,14,.55,.5,1.2); scene.add(flash); scene.add(flash.target);
+scene.add(new THREE.AmbientLight(0x35485e,.10)); // whisper of moonlight: far shapes stay vague, never lit
+/* countdown siren: blinking red beacon, live only during the final 60 seconds */
+const sirenLight=new THREE.PointLight(0xff2222,0,20,1.8);
+sirenLight.position.set(0,3.0,0); scene.add(sirenLight);
+/* practicals collector (no room lights): warm bench lamp + red alarm dot */
+const deskGlow=new THREE.PointLight(0xffb45e,2.5,5,2);
+deskGlow.position.set(2.2,1.7,-5.0); scene.add(deskGlow);
+const alarmDot=new THREE.PointLight(0xff3b5c,1.2,6,2);
+alarmDot.position.set(0,3.0,-5.2); scene.add(alarmDot);
+const player={ pos:new THREE.Vector3(-31.1,1.6,-0.8), vel:new THREE.Vector3(), speed:3.2 };
 function applyCam(){ camera.position.copy(player.pos); camera.rotation.set(state.pitch,state.yaw,0); }
 
 /* ================= TEXTURES ================= */
@@ -634,6 +710,13 @@ function dynCanvasTex(w,h,draw){ const c=document.createElement('canvas'); c.wid
   dynTex.push({c,t,draw}); draw(c.getContext('2d'),w,h); return t; }
 $('langEN').onclick=()=>setLang('en');
 $('langZH').onclick=()=>setLang('zh');
+$('modeSingle').onclick=()=>mpSetMode('single');
+$('modeMulti').onclick=()=>mpSetMode('multi');
+[...$('mpCountRow').children].forEach(b=>b.onclick=()=>mpSetCount(+b.dataset.n));
+$('hostBtn').onclick=()=>mpHost();
+$('joinBtn').onclick=()=>mpJoin($('joinCode').value);
+$('joinCode').addEventListener('keydown',e=>{ if(e.key==='Enter')mpJoin($('joinCode').value); e.stopPropagation(); });
+$('mpCode').onclick=()=>{ try{ navigator.clipboard.writeText(MP.code||''); toast('Code copied!'); }catch(e){} };
 const floorTex=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#9aa7b4';g.fillRect(0,0,w,h);
   g.fillStyle='#8b99a8'; for(let y=0;y<4;y++)for(let x=0;x<4;x++) if((x+y)%2) g.fillRect(x*64,y*64,64,64);
   g.strokeStyle='rgba(20,40,55,.5)';g.lineWidth=3;
@@ -745,7 +828,7 @@ function tryDoor(){
 }
 
 /* ---- DIAGNOSIS TABLE (north-east, by the periodic table) ---- */
-const tableGroup=new THREE.Group(); tableGroup.position.set(2.4,0,-4.0); scene.add(tableGroup);
+const tableGroup=new THREE.Group(); tableGroup.position.set(2.2,0,-5.3); scene.add(tableGroup);
 {
   const top=new THREE.Mesh(new RoundedBoxGeometry(3.4,.08,1.0,2,.02),matBench);
   top.position.set(0,.76,0); top.castShadow=top.receiveShadow=true; tableGroup.add(top);
@@ -813,8 +896,8 @@ const tableGroup=new THREE.Group(); tableGroup.position.set(2.4,0,-4.0); scene.a
 }
 
 /* ---- BOMB BENCH: test-tube rack + pH meter + burner + mixing beaker (west wall) ---- */
-const tubeTable=new THREE.Group(); tubeTable.position.set(-5.2,0,0.6); scene.add(tubeTable);
-let meterCtx, meterTex, beakerLiq, stirRod, flameM, flameLight, beakerG, pourStream;
+const tubeTable=new THREE.Group(); tubeTable.position.set(-5.2,0,0.1); scene.add(tubeTable);
+let meterCtx, meterTex, beakerLiq, flameM, flameLight, beakerG, pourStream;
 let bubbles=[];
 let stirT=0, burnT=0;
 {
@@ -824,7 +907,7 @@ let stirT=0, burnT=0;
     const l=new THREE.Mesh(new THREE.BoxGeometry(.08,.76,.08),matFrame);
     l.position.set(x,.38,z); l.castShadow=true; tubeTable.add(l); });
   const rackBase=new THREE.Mesh(new THREE.BoxGeometry(.7,.04,.5),matFrame);
-  rackBase.position.set(0,.82,-.75); rackBase.castShadow=true; tubeTable.add(rackBase);
+  rackBase.position.set(0,.82,-.75); rackBase.rotation.y=Math.PI/2; rackBase.castShadow=true; tubeTable.add(rackBase);
   tubeSlots.forEach((ph,i)=>{
     const tg=new THREE.Group();
     const glass=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,.24,10),
@@ -837,8 +920,8 @@ let stirT=0, burnT=0;
       g.fillStyle='#fff'; g.font='bold 28px sans-serif'; g.textAlign='center'; g.fillText('T'+(i+1),w/2,36); });
     const tag=new THREE.Mesh(new THREE.PlaneGeometry(.13,.065),
       new THREE.MeshBasicMaterial({map:tT,side:THREE.DoubleSide}));
-    tag.position.set(0,.2,0); tg.add(tag);
-    tg.position.set(-.18+(i%3)*.18,.84,(i<3?-.86:-.64)); tubeTable.add(tg);
+    tag.position.set(0,.2,0); tag.rotation.y=Math.PI/2; tg.add(tag);
+    tg.position.set((i<3?-.11:.11),.84,-.75+((i%3)-1)*.18); tubeTable.add(tg);
     const rec={group:tg,liquid:fluid,ph,tested:false};
     tg.userData.home=tg.position.clone();
     tubeObjs.push(rec);
@@ -872,33 +955,31 @@ let stirT=0, burnT=0;
   probe.position.set(.15,1.11,-.1); tubeTable.add(probe);
   // bunsen burner + flame (hidden until BURN)
   const bbase=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,.03,14),matFrame);
-  bbase.position.set(0,.815,.55); tubeTable.add(bbase);
+  bbase.position.set(-.15,.815,.3); tubeTable.add(bbase);
   const barrel=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.18,10),matMetal);
-  barrel.position.set(0,.92,.55); tubeTable.add(barrel);
+  barrel.position.set(-.15,.92,.3); tubeTable.add(barrel);
   flameM=new THREE.Mesh(new THREE.ConeGeometry(.05,.16,12),
     new THREE.MeshBasicMaterial({color:0xff9a3c,transparent:true,opacity:.9}));
-  flameM.position.set(0,1.08,.55); flameM.visible=false; tubeTable.add(flameM);
-  flameLight=new THREE.PointLight(0xff8c3a,0,3,2); flameLight.position.set(0,1.15,.55); tubeTable.add(flameLight);
+  flameM.position.set(-.15,1.08,.3); flameM.visible=false; tubeTable.add(flameM);
+  flameLight=new THREE.PointLight(0xff8c3a,0,3,2); flameLight.position.set(-.15,1.15,.3); tubeTable.add(flameLight);
   // mixing beaker (liquid level + color follow the recipe) + stir rod
   const beaker=new THREE.Mesh(new THREE.CylinderGeometry(.09,.08,.22,16,1,true),
     new THREE.MeshPhysicalMaterial({color:0xcfeeff,transparent:true,opacity:.3,roughness:.06,clearcoat:1,side:THREE.DoubleSide}));
-  beaker.position.set(-.35,.91,.55); tubeTable.add(beaker);
+  beaker.position.set(-.15,.91,.9); tubeTable.add(beaker);
   beakerG=beaker;
   // pour stream (flash-visible while a tube is emptied in)
   pourStream=new THREE.Mesh(new THREE.CylinderGeometry(.018,.024,.3,8),
     new THREE.MeshBasicMaterial({color:0x46b978,transparent:true,opacity:.9}));
-  pourStream.position.set(-.35,1.2,.55); pourStream.visible=false; tubeTable.add(pourStream);
+  pourStream.position.set(-.15,1.2,.9); pourStream.visible=false; tubeTable.add(pourStream);
   // fizz bubbles (rise while BURN is active)
   bubbles=[];
   for(let bi=0;bi<6;bi++){ const bb=new THREE.Mesh(new THREE.SphereGeometry(.012,6,6),
     new THREE.MeshBasicMaterial({color:0xd8fff0,transparent:true,opacity:.85}));
-    bb.position.set(-.35+(Math.random()-.5)*.08,.85+Math.random()*.08,.55+(Math.random()-.5)*.08);
+    bb.position.set(-.15+(Math.random()-.5)*.08,.85+Math.random()*.08,.9+(Math.random()-.5)*.08);
     bb.visible=false; tubeTable.add(bb); bubbles.push(bb); }
   beakerLiq=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,1,14),
     new THREE.MeshStandardMaterial({color:0x46b978,roughness:.35,emissive:0x46b978,emissiveIntensity:.25,transparent:true,opacity:.9}));
-  beakerLiq.scale.y=.001; beakerLiq.visible=false; beakerLiq.position.set(-.35,.81,.55); tubeTable.add(beakerLiq);
-  stirRod=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.3,8),matMetal);
-  stirRod.position.set(-.35,.95,.55); stirRod.rotation.z=.18; tubeTable.add(stirRod);
+  beakerLiq.scale.y=.001; beakerLiq.visible=false; beakerLiq.position.set(-.15,.81,.9); tubeTable.add(beakerLiq);
   // spare pail on the floor
   const fpail=new THREE.Mesh(new THREE.CylinderGeometry(.14,.11,.3,14),
     new THREE.MeshStandardMaterial({color:0x9fb2c2,roughness:.4,metalness:.6,side:THREE.DoubleSide}));
@@ -916,23 +997,18 @@ let stirT=0, burnT=0;
     g.fillStyle='#d8a400'; for(let x=8;x<w;x+=32){ g.save(); g.translate(x,h-22); g.rotate(.5); g.fillRect(0,0,14,5); g.restore(); } });
   const bombPoster=new THREE.Mesh(new THREE.PlaneGeometry(1.05,1.35),
     new THREE.MeshStandardMaterial({map:bombT,roughness:.7}));
-  bombPoster.position.set(-5.93,2.0,0.6); bombPoster.rotation.y=Math.PI/2; scene.add(bombPoster);
+  bombPoster.position.set(-5.93,2.0,0.1); bombPoster.rotation.y=Math.PI/2; scene.add(bombPoster);
   reg(beakerG,'beaker','beakerLbl',beakerClick);
-  reg(stirRod,'rod','rodLbl',rodClick);
   reg(barrel,'burner','burnerLbl',burnerClick);
   reg(bbase,'burner','burnerLbl',burnerClick);
   reg(flameM,'burner','burnerLbl',burnerClick);
-  // generous invisible hit-targets (a rod, glass and burner are thin to click)
-  const rodHit=new THREE.Mesh(new THREE.SphereGeometry(.13,8,8),
+  // generous invisible hit-targets (glass and burner are thin to click)
+  const beakerHit=new THREE.Mesh(new THREE.SphereGeometry(.26,8,8),
     new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
-  rodHit.position.set(-.35,1.04,.55); tubeTable.add(rodHit);
-  const beakerHit=new THREE.Mesh(new THREE.SphereGeometry(.17,8,8),
-    new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
-  beakerHit.position.set(-.35,.93,.55); tubeTable.add(beakerHit);
+  beakerHit.position.set(-.15,.93,.9); tubeTable.add(beakerHit);
   const burnHit=new THREE.Mesh(new THREE.SphereGeometry(.24,8,8),
     new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
-  burnHit.position.set(0,1.02,.55); tubeTable.add(burnHit);
-  reg(rodHit,'rod','rodLbl',rodClick);
+  burnHit.position.set(-.15,1.02,.3); tubeTable.add(burnHit);
   reg(beakerHit,'beaker','beakerLbl',beakerClick);
   reg(burnHit,'burner','burnerLbl',burnerClick);
   findGroup(tubeTable).forEach(m=>{ if(!m.userData.iid) reg(m,'meter','meterLbl',()=>{
@@ -989,7 +1065,7 @@ function testTube(i){
 /* ---- HEIGHT + WEIGHT STATION (beside table) ---- */
 let screenMesh, screenTex, screenCtx, screenCanvas;
 {
-  const g=new THREE.Group(); g.position.set(4.3,0,-4.6); scene.add(g);
+  const g=new THREE.Group(); g.position.set(4.55,0,-5.45); scene.add(g);
   const plat=new THREE.Mesh(new RoundedBoxGeometry(.7,.06,.7,2,.02),matFrame);
   plat.position.y=.03; plat.castShadow=plat.receiveShadow=true; g.add(plat);
   const pole=new THREE.Mesh(new THREE.BoxGeometry(.08,2.1,.08),matMetal);
@@ -1050,7 +1126,7 @@ let fridgeDoor, fridgeLight, vials=[];
   lock.position.set(-.02,.5,-1.0); fridgeDoor.add(lock);
   [.7,1.15].forEach(y=>{ const sh=new THREE.Mesh(new THREE.BoxGeometry(.7,.04,1.2),matBench);
     sh.position.set(0,y,0); fridgeGroup.add(sh); });
-  fridgeLight=new THREE.PointLight(0xbfefff,0,3,2); fridgeLight.position.set(-.2,1.6,0); fridgeGroup.add(fridgeLight);
+  fridgeLight=new THREE.PointLight(0xbfefff,1.2,3.5,2); fridgeLight.position.set(-.2,1.6,0); fridgeGroup.add(fridgeLight);
   const cureCode=virusCode(ME.virus);
   {
     const vg=new THREE.Group();
@@ -1065,7 +1141,7 @@ let fridgeDoor, fridgeLight, vials=[];
       new THREE.MeshBasicMaterial({map:labT})); lab.position.set(0,.02,.115); vg.add(lab);
     const lab2=lab.clone(); lab2.rotation.y=Math.PI; lab2.position.z=-.115; vg.add(lab2);
     vg.position.set(-.1,.9,0); vg.visible=false; fridgeGroup.add(vg);
-    vials.push({group:vg,baseY:.9});
+    vials.push({group:vg,liquid,baseY:.9});
     findGroup(vg).forEach(m=>reg(m,'vial','cureVialLbl',drinkCure));
   }
   shellMeshes.forEach(p=>reg(p,'fridge','fridgeLbl',tryFridge));
@@ -1078,11 +1154,63 @@ function tryFridge(){
   toast(state.cured?T('fridgeOpenCured'):T('fridgeOpenNeed',state.diagnosed));
 }
 function drinkCure(){
-  if(!state.fridgeOpen) return;
+  if(!state.fridgeOpen||state.drinking) return;
   if(state.cured){ toast(T('alreadyCured')); return; }
-  state.cured=true; flashGreen(); objective('obj2'); renderInv();
-  beep(660,.1); setTimeout(()=>beep(880,.12),120); setTimeout(()=>beep(1320,.18),260);
-  showNote(T('drinkOneTitle'),T('drinkText'));
+  // --- first-person drinking animation: vial flies to mouth, tilts, drains ---
+  const vial=vials[0];
+  state.drinking=true; state.scopeBusy=true;
+  hovered=null; promptEl.style.display='none'; cross.classList.remove('active');
+  beep(500,.07);
+  scene.attach(vial.group); // keep world pos, now tween in world space
+  const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
+  const handW=camera.position.clone().addScaledVector(dir,.55); handW.y-=.25;
+  const fx=$('drinkFx'), fill=$('drinkFill');
+  tweenPos(vial.group,handW,.6,()=>{
+    const emoji=$('drinkVial');
+    if(emoji){ emoji.style.animation='none'; void emoji.offsetWidth; emoji.style.animation=''; }
+    fx.classList.add('open');
+    if(fill)fill.style.width='100%';
+    const pitch0=state.pitch, yaw0=state.yaw, t0=performance.now(), DUR=1900;
+    let gulps=0;
+    const startQuat=vial.group.quaternion.clone();
+    const startPos=vial.group.position.clone();
+    const tiltEuler=new THREE.Euler();
+    const sip=setInterval(()=>{
+      const k=Math.min((performance.now()-t0)/DUR,1);
+      const e=k*k*(3-2*k);
+      // head tilts back slightly while gulping (yaw locked so drink stays centered)
+      state.yaw=yaw0;
+      state.pitch=pitch0+.32*Math.sin(e*Math.PI/2);
+      applyCam();
+      // anchor tracks the camera so the vial stays glued in front of the mouth
+      const fwd=new THREE.Vector3(); camera.getWorldDirection(fwd);
+      const anchor=camera.position.clone().addScaledVector(fwd,.55);
+      anchor.y-=.25; anchor.y+=.12*e;
+      vial.group.position.lerpVectors(startPos,anchor,e);
+      // camera-relative tilt: vial starts upright in view, tips top toward mouth
+      tiltEuler.set(2.1*e,0,.45*e);
+      const tiltQ=new THREE.Quaternion().setFromEuler(tiltEuler);
+      const desired=camera.quaternion.clone().multiply(tiltQ);
+      vial.group.quaternion.slerpQuaternions(startQuat,desired,e);
+      if(vial.liquid){ const s=Math.max(.05,1-.95*e);
+        vial.liquid.scale.y=s;
+        vial.liquid.position.y=-(0.32*(1-s))/2; }
+      if(fill)fill.style.width=Math.round((1-e)*100)+'%';
+      // gulp sounds: 3 descending "swallows"
+      const want=Math.floor(e*3.2);
+      if(want>gulps){ gulps=want; beep(300-gulps*40,.14,'sine',.14);
+        setTimeout(()=>beep(520,.08,'sine',.1),90); }
+      if(k>=1){ clearInterval(sip);
+        vial.group.visible=false;
+        fx.classList.remove('open');
+        state.pitch=pitch0; state.yaw=yaw0; applyCam();
+        state.cured=true; flashGreen(); objective('obj2'); renderInv();
+        beep(660,.1); setTimeout(()=>beep(880,.12),120); setTimeout(()=>beep(1320,.18),260);
+        showNote(T('drinkOneTitle'),T('drinkText'));
+        state.drinking=false; state.scopeBusy=false;
+      }
+    },16);
+  });
 }
 /* carry + eyepiece animation */
 const tweens=[];
@@ -1129,8 +1257,19 @@ function closeScope(){
   if(scopeCg){ const cg=scopeCg; scopeCg=null; state.scopeBusy=true;
     tweenPos(cg,cg.userData.home,.6,()=>{ state.scopeBusy=false; }); }
   if(state.playing&&!state.won&&!state.dead)relock();
+  // hallucination: something stares back the first time you pull away
+  if(!state.scaredScope){ state.scaredScope=true; setTimeout(()=>jumpscare('👹',850),450); }
 }
 $('scopeClose').onclick=closeScope;
+/* ---- jumpscares: fullscreen face + sting + camera shake ---- */
+function jumpscare(face,ms=800){
+  const sc=$('scare'); if(!sc)return;
+  $('scareFace').textContent=face;
+  sc.classList.add('open');
+  state.shakeUntil=performance.now()+ms;
+  beep(90,.5,'sawtooth',.25); beep(55,.6,'square',.2); setTimeout(()=>beep(140,.3,'sawtooth',.2),80);
+  setTimeout(()=>sc.classList.remove('open'),ms);
+}
 
 /* ---- SCIENTIST LOCKERS 2x4 (south wall) ---- */
 const lockerBank=new THREE.Group(); lockerBank.position.set(0,0,5.55); scene.add(lockerBank);
@@ -1147,7 +1286,7 @@ const lockers=[];
     door.position.set(.575,0,0); door.castShadow=true; pivot.add(door);
     const plateT=canvasTex(256,96,(g,w,h)=>{ g.fillStyle='#0b2b36'; g.fillRect(0,0,w,h);
       g.fillStyle='#ffd54a'; g.font='bold 24px sans-serif'; g.textAlign='center';
-      g.fillText(RIDDLES[i].who,w/2,36); g.fillStyle='#fff'; g.font='bold 30px sans-serif'; g.fillText('🔒 ???',w/2,74); });
+      g.fillText(LOCKERS[i].who,w/2,36); g.fillStyle='#fff'; g.font='bold 30px sans-serif'; g.fillText('🔒 ???',w/2,74); });
     const plate=new THREE.Mesh(new THREE.PlaneGeometry(.8,.3),
       new THREE.MeshBasicMaterial({map:plateT})); plate.position.set(.575,.18,-.035); plate.rotation.y=Math.PI; pivot.add(plate);
     const slot=new THREE.Mesh(new THREE.BoxGeometry(.3,.03,.02),
@@ -1155,7 +1294,7 @@ const lockers=[];
     const rec={pivot,opened:false};
     lockers.push(rec);
     const idx=i;
-    findGroup(pivot).forEach(m=>reg(m,'locker','lockerLabel',()=>tryLocker(idx),RIDDLES[idx].who));
+    findGroup(pivot).forEach(m=>reg(m,'locker','lockerLabel',()=>tryLocker(idx),LOCKERS[idx].who));
   }
 }
 function tryLocker(i){
@@ -1188,7 +1327,9 @@ function openLocker(i){
     piv.rotation.y=-1.9*k; if(k>=1)clearInterval(tw); },16);
   beep(500,.08); setTimeout(()=>beep(700,.1),120);
   cardGroup.visible=true;
-  toast(T('lockerOpenCard',RIDDLES[i].who));
+  toast(T('lockerOpenCard',LOCKERS[i].who));
+  // jumpscare: something was waiting inside with the card
+  setTimeout(()=>jumpscare('💀',850),650);
 }
 
 /* (protocol board removed — steps live in the HUD objectives) */
@@ -1197,22 +1338,6 @@ function openLocker(i){
    (Deliberately NO reg() calls here: these props are eye-candy and cannot be clicked.) */
 {
   const decoMat=(c,r=.6,m=.1)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
-  // fume hood, north wall
-  const hood=new THREE.Group(); hood.position.set(-.4,0,-5.5); scene.add(hood);
-  const hoodBody=new THREE.Mesh(new RoundedBoxGeometry(2.0,2.3,.8,2,.03),decoMat(0xcfdae4,.45,.35));
-  hoodBody.position.y=1.15; hoodBody.castShadow=hoodBody.receiveShadow=true; hood.add(hoodBody);
-  const hoodCavity=new THREE.Mesh(new THREE.BoxGeometry(1.7,1.0,.1),
-    new THREE.MeshStandardMaterial({color:0x0d2028,roughness:.9}));
-  hoodCavity.position.set(0,1.25,.36); hood.add(hoodCavity);
-  const sash=new THREE.Mesh(new THREE.PlaneGeometry(1.7,.55),
-    new THREE.MeshPhysicalMaterial({color:0xcfeeff,transparent:true,opacity:.25,roughness:.05,clearcoat:1}));
-  sash.position.set(0,1.0,.42); hood.add(sash);
-  const hoodGlow=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.08),
-    new THREE.MeshBasicMaterial({color:0xd8f6ff})); hoodGlow.position.set(0,1.78,.41); hood.add(hoodGlow);
-  const duct=new THREE.Mesh(new THREE.CylinderGeometry(.16,.16,1.2,12),decoMat(0x8fa2b2,.4,.6));
-  duct.position.set(0,2.9,-.1); hood.add(duct);
-  const airfoil=new THREE.Mesh(new THREE.BoxGeometry(1.8,.06,.7),decoMat(0x5a6b7a,.5,.4));
-  airfoil.position.set(0,.72,.05); airfoil.castShadow=true; hood.add(airfoil);
   // sink counter, west wall
   const sink=new THREE.Group(); sink.position.set(-5.55,0,3.0); scene.add(sink);
   const sinkBody=new THREE.Mesh(new RoundedBoxGeometry(.7,.9,2.2,2,.02),decoMat(0xdfe7ee,.4,.25));
@@ -1263,16 +1388,6 @@ function openLocker(i){
     g.fillStyle='#111'; g.font='bold 72px sans-serif'; g.textAlign='center'; g.fillText('☣',w/2,96); });
   const bio=new THREE.Mesh(new THREE.PlaneGeometry(.34,.34),
     new THREE.MeshBasicMaterial({map:bioT})); bio.position.set(-.26,.38,0); bio.rotation.y=-Math.PI/2; bin.add(bio);
-  // lab stools near the table
-  [[-3.7,1.9],[-1.3,2.1]].forEach(([x,z])=>{
-    const st=new THREE.Group(); st.position.set(x,0,z); scene.add(st);
-    const seat=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.07,18),decoMat(0x0e7d96,.5));
-    seat.position.y=.62; seat.castShadow=true; st.add(seat);
-    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.58,8),matMetal);
-    pole.position.y=.31; st.add(pole);
-    const foot=new THREE.Mesh(new THREE.CylinderGeometry(.26,.28,.04,18),matFrame);
-    foot.position.y=.02; st.add(foot);
-  });
   // stocked wall shelf, east wall (high, out of reach)
   const shelf2=new THREE.Group(); shelf2.position.set(5.82,0,2.2); scene.add(shelf2);
   [1.45,1.95].forEach(y=>{
@@ -1356,9 +1471,7 @@ let surgDoor;
   mk(10,ROOM.h, SX,ROOM.h/2, 4, Math.PI);
   mk(8,ROOM.h, SX-5,ROOM.h/2,0, Math.PI/2);
   mk(8,ROOM.h, SX+5,ROOM.h/2,0, -Math.PI/2);
-  const sLight=new THREE.PointLight(0xeafff2,16,14,1.6);
-  sLight.position.set(SX,3.0,0); sLight.castShadow=true;
-  sLight.shadow.mapSize.set(1024,1024); scene.add(sLight);
+
   const lampArm=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,1.0,8),matMetal);
   lampArm.position.set(SX,3.0,-2); scene.add(lampArm);
   const dome=new THREE.Mesh(new THREE.SphereGeometry(.35,16,12,0,Math.PI*2,0,Math.PI/2),
@@ -1542,32 +1655,39 @@ let panelLamp;
   panelLamp.position.set(-.14,1.35,.3); pg.add(panelLamp);
   findGroup(pg).forEach(m=>reg(m,'panel','panelLbl',tryPanel));
 }
-let coatKeyMesh;
+/* coat hangers: identical baits, the locker key hides in ONE random pocket */
+const COAT_SPOTS=[
+  {x:-3.6,z:4.9,ry:Math.PI},
+  {x:-1.5,z:-5.3,ry:0},
+  {x:3.5,z:5.4,ry:Math.PI},
+  {x:-5.3,z:-2.5,ry:Math.PI/2},
+];
+const keyCoat=Math.floor(Math.random()*COAT_SPOTS.length);
+console.log('%ckey coat: '+keyCoat, 'color:gold');
 {
-  const hg=new THREE.Group(); hg.position.set(-3.6,0,4.9); scene.add(hg);
-  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,2.0,10),matFrame);
-  pole.position.y=1.0; pole.castShadow=true; hg.add(pole);
-  const foot=new THREE.Mesh(new THREE.CylinderGeometry(.25,.3,.05,14),matFrame);
-  foot.position.y=.025; hg.add(foot);
-  const coat=new THREE.Mesh(new RoundedBoxGeometry(.5,.85,.16,2,.05),
-    new THREE.MeshStandardMaterial({color:0xeef1f4,roughness:.85}));
-  coat.position.y=1.35; coat.castShadow=true; hg.add(coat);
-  [[-.3],[.3]].forEach(([x])=>{
-    const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,.6,8),
-      new THREE.MeshStandardMaterial({color:0xe4e9ed,roughness:.85}));
-    sleeve.position.set(x,1.3,0); sleeve.rotation.z=x>0?-.15:.15; hg.add(sleeve); });
-  coatKeyMesh=new THREE.Group();
-  const bow=new THREE.Mesh(new THREE.TorusGeometry(.035,.012,8,16),matGold); coatKeyMesh.add(bow);
-  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.01,.01,.09,6),matGold);
-  shaft.position.y=-.06; coatKeyMesh.add(shaft);
-  coatKeyMesh.position.set(.1,1.15,.1); coatKeyMesh.rotation.y=.4; hg.add(coatKeyMesh);
-  findGroup(hg).forEach(m=>reg(m,'coat','coatLbl',tryCoat));
+  COAT_SPOTS.forEach((s,idx)=>{
+    const hg=new THREE.Group(); hg.position.set(s.x,0,s.z); hg.rotation.y=s.ry; scene.add(hg);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,2.0,10),matFrame);
+    pole.position.y=1.0; pole.castShadow=true; hg.add(pole);
+    const foot=new THREE.Mesh(new THREE.CylinderGeometry(.25,.3,.05,14),matFrame);
+    foot.position.y=.025; hg.add(foot);
+    const coat=new THREE.Mesh(new RoundedBoxGeometry(.5,.85,.16,2,.05),
+      new THREE.MeshStandardMaterial({color:0xeef1f4,roughness:.85}));
+    coat.position.y=1.35; coat.castShadow=true; hg.add(coat);
+    [[-.3],[.3]].forEach(([x])=>{
+      const sleeve=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,.6,8),
+        new THREE.MeshStandardMaterial({color:0xe4e9ed,roughness:.85}));
+      sleeve.position.set(x,1.3,0); sleeve.rotation.z=x>0?-.15:.15; hg.add(sleeve); });
+    findGroup(hg).forEach(m=>reg(m,'coat','coatLbl',()=>tryCoat(idx)));
+  });
 }
-function tryCoat(){
+function tryCoat(idx){
   if(state.hasKey){ toast(T('coatEmpty')); return; }
-  state.hasKey=true; coatKeyMesh.visible=false; renderInv();
-  beep(880,.1); setTimeout(()=>beep(1174,.15),120);
-  toast(T('keyToast'));
+  if(idx===keyCoat){
+    state.hasKey=true; renderInv();
+    beep(880,.1); setTimeout(()=>beep(1174,.15),120);
+    toast(T('keyToast'));
+  } else { beep(200,.12,'square',.06); toast(T('coatEmpty')); }
 }
 function tryPanel(){
   if(state.blackout){ toast(T('panelFried')); return; }
@@ -1592,7 +1712,6 @@ function tryPanel(){
         panelLamp.material.emissive.setHex(0x22ff44);
         objective('obj3'); state.scopeBusy=false;
         beep(220,.3,'sawtooth',.15); setTimeout(()=>beep(140,.4,'sawtooth',.15),250);
-        ceilLight.intensity=8; setTimeout(()=>{ if(!state.won&&!state.dead)ceilLight.intensity=22; },900);
         toast(T('pourGo'),3600);
       },600); }
   },16);
@@ -1710,7 +1829,6 @@ function submitPad(){
 function onFridgeOpen(){
   state.fridgeOpen=true; renderInv();
   beep(660,.1); setTimeout(()=>beep(880,.12),120); setTimeout(()=>beep(1320,.18),260);
-  fridgeLight.intensity=4;
   vials.forEach(v=>v.group.visible=true);
   const t0=performance.now();
   const tw=setInterval(()=>{ const k=Math.min((performance.now()-t0)/700,1);
@@ -1758,7 +1876,7 @@ function pourTube(i){
   state.carried=null; state.scopeBusy=true;
   hovered=null; promptEl.style.display='none'; cross.classList.remove('active');
   beep(500,.07);
-  tweenPos(t.group,new THREE.Vector3(-.35,1.42,.55),.45,()=>{
+  tweenPos(t.group,new THREE.Vector3(-.15,1.42,.9),.45,()=>{
     t.group.rotation.z=-.9;
     pourStream.material.color.setHex(phCol(ph));
     pourStream.visible=true;
@@ -1768,8 +1886,15 @@ function pourTube(i){
       if(ph===need&&!state.mixAdded.some(e=>e.ph===ph)){
         state.mixAdded.push({ph,known}); state.mixStage++;
         const ns=state.mixStage;
-        toast(ns===2?T('burnHint'):(ns===3?T('stirHint'):(ns===4?T('finaleHint'):(known?T('mixAdded',ph):T('mixAddedUnknown')))),3200);
-        updateBeaker();
+        if(ns===3){
+          // all liquids in — no rod: the batch stirs itself, then finishes
+          updateBeaker(); state.mixStage++; stirT=1.6; beep(600,.07);
+          toast(T('stirHint'),3200);
+          setTimeout(()=>{ if(state.mixStage===4&&!state.hasBomb)mixFinale(); },1800);
+        } else {
+          toast(ns===2?T('burnHint'):(known?T('mixAdded',ph):T('mixAddedUnknown')),3200);
+          updateBeaker();
+        }
       } else { resetBeaker(); beep(150,.25,'sawtooth',.15); toast(T('mixWrong')); }
       tweenPos(t.group,t.group.userData.home,.5,()=>{ state.scopeBusy=false; });
     },850);
@@ -1782,13 +1907,6 @@ function beakerClick(){
   if(state.mixStage===4){ mixFinale(); return; }
   toast(T('notNow'));
 }
-function doStir(){ state.mixStage++; stirT=1.6; beep(600,.07); toast(T('finaleHint'),3200); }
-function rodClick(){
-  if(state.scopeBusy||state.scopeOpen) return;
-  if(state.carried!=null){ toast(T('handsFull')); return; }
-  if(state.mixStage===3){ doStir(); }
-  else beakerClick();
-}
 function burnerClick(){
   if(state.scopeBusy||state.scopeOpen) return;
   const i=state.carried;
@@ -1798,7 +1916,7 @@ function burnerClick(){
     state.carried=null; state.scopeBusy=true;
     hovered=null; promptEl.style.display='none'; cross.classList.remove('active');
     beep(500,.07);
-    tweenPos(t.group,new THREE.Vector3(0,1.2,.55),.45,()=>{
+    tweenPos(t.group,new THREE.Vector3(-.15,1.2,.3),.45,()=>{
       flameM.visible=true; burnT=1.6;
       t.liquid.material.color.setHex(0xff8c3a); t.liquid.material.emissive.setHex(0xff6a00);
       t.liquid.material.emissiveIntensity=.7;
@@ -1854,17 +1972,201 @@ function renderInv(){
 }
 renderInv();
 
+/* ================= MULTIPLAYER (2-4P shared world, P2P invite code) =================
+   Host creates a 6-letter room code (PeerJS P2P, no server to host).
+   Everyone spawns in the same ward; progress flags merge (first unlock wins). */
+const MP={
+  mode:'single', max:1, code:null, isHost:false,
+  peer:null, conns:[], quiet:false,
+  me:{ name:'P-'+Math.random().toString(36).slice(2,6).toUpperCase(), color:0x4ae3ff },
+  players:[], avatars:new Map(), lastPos:0, lastProg:'',
+};
+const MP_COLORS=[0x4ae3ff,0xffd54a,0x7ee2a8,0xf472b6];
+const MP_PREFIX='s07-room-';
+function mpToast(m){ try{ toast(m); }catch(e){} }
+function mpMakeCode(){ const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s='';
+  for(let i=0;i<6;i++)s+=A[Math.floor(Math.random()*A.length)]; return s; }
+function mpSetMode(m){ MP.mode=m;
+  $('modeSingle').classList.toggle('on',m==='single');
+  $('modeMulti').classList.toggle('on',m==='multi');
+  $('mpCountRow').classList.toggle('hidden',m!=='multi');
+  $('mpNet').classList.toggle('hidden',m!=='multi');
+  if(m==='multi'){ if(MP.max<2)MP.max=2;
+    [...$('mpCountRow').children].forEach(b=>b.classList.toggle('on',+b.dataset.n===MP.max)); }
+  mpUpdateLobby(); }
+function mpSetCount(n){ MP.max=n;
+  [...$('mpCountRow').children].forEach(b=>b.classList.toggle('on',+b.dataset.n===n));
+  mpUpdateLobby(); }
+function mpRoster(){ // local view: self + known remotes
+  const list=[{name:MP.me.name,color:MP.me.color,host:MP.isHost,self:true}];
+  MP.players.filter(p=>p.name!==MP.me.name).forEach(p=>list.push(p));
+  return list; }
+function mpUpdateLobby(){
+  const el=$('mpPlayers');
+  if(MP.mode==='single'){ el.textContent='Squad: solo'; return; }
+  const n=mpRoster().length;
+  el.textContent='Squad: '+n+' / '+MP.max+(MP.code?('  •  code '+MP.code):'  •  no code yet');
+  const pill=$('mpPill');
+  if(state.playing&&MP.mode==='multi'&&MP.code){ pill.classList.remove('hidden');
+    $('mpPillTxt').textContent=MP.code+' • '+n+'/'+MP.max; }
+  else pill.classList.add('hidden'); }
+function mpPeerOK(){ if(window.Peer) return true;
+  mpToast('⚠️ Net library blocked — lobby works offline, others cannot join.');
+  return false; }
+function mpHost(){ if(!mpPeerOK()){ // offline fallback: local code, solo start
+    MP.code=MP.code||mpMakeCode(); MP.isHost=true;
+    $('mpCode').textContent=MP.code; $('mpCode').classList.remove('hidden');
+    mpToast('🔗 Offline lobby — code '+MP.code+' (others cannot join without net).');
+    mpUpdateLobby(); return; }
+  try{
+    if(MP.peer)MP.peer.destroy();
+    MP.code=mpMakeCode(); MP.isHost=true; MP.conns=[]; MP.players=[];
+    MP.me.color=MP_COLORS[0];
+    const peer=new window.Peer(MP_PREFIX+MP.code,{debug:0});
+    MP.peer=peer;
+    peer.on('open',()=>{ $('mpCode').textContent=MP.code; $('mpCode').classList.remove('hidden');
+      beep(880,.1); mpToast('🔗 Room '+MP.code+' open — share the code!');
+      mpSendRoster(); mpUpdateLobby(); });
+    peer.on('connection',c=>mpAddConn(c));
+    peer.on('error',e=>mpToast('⚠️ Host error: '+(e&&e.type||e)));
+  }catch(e){ mpToast('⚠️ Could not host.'); } }
+function mpJoin(raw){ const code=(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(code.length<4){ mpToast('Enter the 6-letter room code.'); return; }
+  if(!mpPeerOK()){ mpToast('⚠️ Net library blocked — cannot join.'); return; }
+  try{
+    if(MP.peer)MP.peer.destroy();
+    MP.conns=[]; MP.players=[]; MP.isHost=false;
+    const peer=new window.Peer({debug:0});
+    MP.peer=peer;
+    mpToast(' dialing '+code+'…');
+    peer.on('open',()=>{ const c=peer.connect(MP_PREFIX+code,{reliable:true});
+      if(!c){ mpToast('⚠️ Could not connect.'); return; }
+      const to=setTimeout(()=>{ if(!MP.code)mpToast('⚠️ No answer — check the code.'); },10000);
+      c.on('open',()=>{ clearTimeout(to); mpAddConn(c);
+        c.send({t:'hello',name:MP.me.name,color:MP.me.color}); });
+      c.on('error',()=>mpToast('⚠️ Connection failed.')); });
+    peer.on('error',e=>mpToast('⚠️ Join error: '+(e&&e.type||e)));
+  }catch(e){ mpToast('⚠️ Could not join.'); } }
+function mpAddConn(c){ c.on('data',d=>mpOnData(d,c)); c.on('open',()=>{ if(!MP.conns.includes(c))MP.conns.push(c);
+    if(MP.isHost){ if(MP.conns.length>MP.max-1){ try{c.send({t:'full'})}catch(e){} setTimeout(()=>{try{c.close()}catch(e){}},400); return; }
+      mpSendRoster(); }
+    mpUpdateLobby(); });
+  c.on('close',()=>{ MP.conns=MP.conns.filter(x=>x!==c);
+    const av=[...MP.avatars.keys()];
+    mpUpdateLobby(); });
+  c.on('error',()=>{ MP.conns=MP.conns.filter(x=>x!==c); mpUpdateLobby(); });
+  if(c.open&&!MP.conns.includes(c))MP.conns.push(c); }
+function mpSend(o){ MP.conns.filter(c=>c.open).forEach(c=>{ try{c.send(o)}catch(e){} }); }
+function mpSendRoster(){ mpSend({t:'roster',players:mpRoster(),max:MP.max,code:MP.code}); mpUpdateLobby(); }
+function mpProgSnap(){ return { measured:state.measured, diagnosed:state.diagnosed,
+  fridgeOpen:state.fridgeOpen, cured:state.cured, hasBomb:state.hasBomb, hasKey:state.hasKey,
+  hasCard:state.hasCard, surgOpen:state.surgOpen, blackout:state.blackout, doorOpen:state.doorOpen,
+  room:state.room, countdown:state.countdown, name:MP.me.name }; }
+function mpBroadcastProg(){ if(MP.mode!=='multi'||MP.quiet) return;
+  try{ const s=JSON.stringify(mpProgSnap());
+    if(s!==MP.lastProg){ MP.lastProg=s; mpSend({t:'prog',p:mpProgSnap()}); } }catch(e){} }
+function mpApplyProg(p){ if(!p||MP.quiet) return;
+  MP.quiet=true;
+  try{
+    if(p.measured&&!state.measured){ state.measured=true;
+      try{ screenCtx.fillStyle='#062b38'; screenCtx.fillRect(0,0,256,128);
+        screenCtx.fillStyle='#7ee2a8'; screenCtx.font='bold 26px sans-serif'; screenCtx.textAlign='center';
+        screenCtx.fillText(ME.h+' cm',128,52); screenCtx.fillText(ME.w+' kg',128,86);
+        screenTex.needsUpdate=true; }catch(e){} renderInv(); }
+    if(p.diagnosed&&!state.diagnosed){ state.diagnosed=p.diagnosed; objective('obj1'); renderInv();
+      mpToast('🧬 Squad diagnosed: '+p.diagnosed); }
+    if(p.fridgeOpen&&!state.fridgeOpen){ state.fridgeOpen=true;
+      try{ vials.forEach(v=>v.group.visible=true); fridgeDoor.rotation.y=-1.8; }catch(e){}
+      renderInv(); mpToast('✅ Squad opened the cure fridge!'); }
+    if(p.cured&&!state.cured){ state.cured=true; objective('obj2');
+      try{ vials.forEach(v=>v.group.visible=false); }catch(e){} renderInv();
+      flashGreen(); mpToast('💉 Squad cured!'); }
+    if(p.hasBomb&&!state.hasBomb&&!state.blackout){ state.hasBomb=true; renderInv();
+      mpToast('💣 Squad built the bomb!'); }
+    if(p.hasKey&&!state.hasKey){ state.hasKey=true; renderInv(); mpToast('🔑 Squad found the locker key!'); }
+    if(p.hasCard&&!state.hasCard){ state.hasCard=true; objective('obj4');
+      try{ cardGroup.visible=false; }catch(e){} renderInv(); mpToast('🪪 Squad has the access card!'); }
+    if(p.surgOpen&&!state.surgOpen){ state.surgOpen=true; objective('obj0');
+      try{ surgDoor.position.z=-1.3; }catch(e){}
+      if(state.room==='surgery'){ player.pos.set(0,1.6,4.6); state.yaw=0; state.pitch=0; state.room='lab'; }
+      beep(660,.1); mpToast('🚪 Squad opened the ward door!'); }
+    if(p.blackout&&!state.blackout){ state.blackout=true; state.countdown=60; state.lastTick=60;
+      try{ panelLamp.material.emissive.setHex(0x22ff44); }catch(e){}
+      objective('obj3'); renderInv(); mpToast('⚡ Squad overloaded the electrics — 60s, RUN!'); }
+    else if(p.countdown!=null&&state.countdown==null&&!state.won){ state.countdown=p.countdown; }
+    if(p.doorOpen&&!state.doorOpen){ state.doorOpen=true; state.countdown=null; objective('obj4'); winGame(); }
+    mpUpdateLobby();
+  }catch(e){} MP.quiet=false; }
+function mpEnsureAvatar(name,color){ if(name===MP.me.name) return null;
+  let a=MP.avatars.get(name);
+  if(!a){ const g=new THREE.Group();
+    const body=new THREE.Mesh(new THREE.CapsuleGeometry(.22,.8,4,10),
+      new THREE.MeshStandardMaterial({color:color||0xffffff,roughness:.6}));
+    body.position.y=.95; body.castShadow=true; g.add(body);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(.16,12,10),
+      new THREE.MeshStandardMaterial({color:0xc9a186,roughness:.7}));
+    head.position.y=1.75; g.add(head);
+    const cv=document.createElement('canvas'); cv.width=256; cv.height=64;
+    const cx=cv.getContext('2d'); cx.fillStyle='rgba(0,0,0,.55)'; cx.fillRect(0,0,256,64);
+    cx.fillStyle='#fff'; cx.font='bold 30px sans-serif'; cx.textAlign='center';
+    cx.fillText(String(name).slice(0,12),128,42);
+    const tx=new THREE.CanvasTexture(cv); tx.colorSpace=THREE.SRGBColorSpace;
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,depthTest:false}));
+    sp.scale.set(.9,.22,1); sp.position.y=2.15; g.add(sp);
+    g.visible=false; scene.add(g);
+    a={group:g}; MP.avatars.set(name,a); }
+  return a; }
+function mpOnData(d,c){ if(!d||typeof d!=='object') return;
+  if(d.t==='hello'){ if(MP.isHost){ MP.players=MP.players.filter(p=>p.name!==d.name);
+      MP.players.push({name:d.name,color:d.color,host:false});
+      try{c.send({t:'welcome',code:MP.code,max:MP.max,players:mpRoster(),prog:mpProgSnap(),color:MP_COLORS[MP.players.length%MP_COLORS.length]})}catch(e){}
+      mpSendRoster(); mpToast('👥 '+d.name+' joined ('+mpRoster().length+'/'+MP.max+')'); }
+    return; }
+  if(d.t==='welcome'){ MP.code=d.code; MP.max=d.max||MP.max; MP.isHost=false;
+    if(typeof d.color==='number')MP.me.color=d.color;
+    MP.players=(d.players||[]).filter(p=>p.name!==MP.me.name);
+    $('mpCode').textContent=MP.code; $('mpCode').classList.remove('hidden');
+    beep(880,.1); mpToast('👥 Joined room '+MP.code+'!');
+    if(d.prog)mpApplyProg(d.prog);
+    mpUpdateLobby(); return; }
+  if(d.t==='roster'){ MP.players=(d.players||[]).filter(p=>p.name!==MP.me.name);
+    if(d.max)MP.max=d.max; if(d.code)MP.code=d.code;
+    if(MP.code){ $('mpCode').textContent=MP.code; $('mpCode').classList.remove('hidden'); }
+    mpUpdateLobby(); return; }
+  if(d.t==='full'){ mpToast('Room is full.'); return; }
+  if(d.t==='pos'){ const a=mpEnsureAvatar(d.name,d.color);
+    if(a){ a.group.visible=(d.room===state.room);
+      a.group.position.set(d.x,0,d.z); }
+    return; }
+  if(d.t==='prog'){ mpApplyProg(d.p); return; } }
+function mpTick(){ if(MP.mode!=='multi') return;
+  const now=performance.now();
+  try{
+    if(state.playing&&!state.won&&!state.dead&&now-MP.lastPos>120){ MP.lastPos=now;
+      mpSend({t:'pos',name:MP.me.name,color:MP.me.color,
+        x:+player.pos.x.toFixed(2),z:+player.pos.z.toFixed(2),room:state.room}); }
+    if(!MP._pt||now-MP._pt>800){ MP._pt=now; mpBroadcastProg(); }
+  }catch(e){} }
+
 /* ================= CONTROLS ================= */
 const promptEl=$('prompt'),cross=$('crosshair');
-addEventListener('keydown',e=>{ if(e.code==='KeyN'){ if(state.playing&&!state.won&&!state.dead&&!state.scopeOpen)togglePin(); return; }
+addEventListener('keydown',e=>{
+  if(e.code==='ControlLeft'||e.code==='ControlRight'){ if(!e.repeat)adminCtrlArmed=true; return; }
+  if(e.ctrlKey||e.metaKey)adminCtrlArmed=false; // a combo (Ctrl+A/C/…) — not a solo CTRL tap
+  if(e.code==='KeyN'){ if(state.playing&&!state.won&&!state.dead&&!state.scopeOpen)togglePin(); return; }
   if(state.scopeOpen){ if(e.code==='KeyE')closeScope(); return; }
   if(modal.classList.contains('open'))return; // don't walk/type-hit while reading
   if(e.code==='KeyX'){ putBack(); return; }
   state.keys[e.code]=true;
   if(e.code==='KeyE')doInteract();
   if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault(); });
-addEventListener('keyup',e=>state.keys[e.code]=false);
-document.addEventListener('mousemove',e=>{ if(!state.locked||!state.playing||state.won||state.dead)return;
+addEventListener('keyup',e=>{
+  if(e.code==='ControlLeft'||e.code==='ControlRight'){
+    if(adminCtrlArmed&&!e.ctrlKey){ adminCtrlArmed=false; showAdminCodes(); }
+    return;
+  }
+  state.keys[e.code]=false; });
+document.addEventListener('mousemove',e=>{ if(!state.locked||!state.playing||state.won||state.dead||state.drinking||state.waking)return;
   state.yaw-=e.movementX*.0023; state.pitch-=e.movementY*.0023;
   state.pitch=Math.max(-1.45,Math.min(1.45,state.pitch)); });
 renderer.domElement.addEventListener('click',()=>{ if(state.playing&&!modal.classList.contains('open'))doInteract(); });
@@ -1884,18 +2186,47 @@ $('restartBtn').onclick=()=>location.reload();
 $('restartBtn2').onclick=()=>location.reload();
 $('retryBtn').onclick=()=>location.reload();
 $('carryBack').onclick=()=>putBack();
-function startGame(){ state.playing=true; state.startTime=performance.now(); lockPointer();
-  beep(440,.1); }
+function startGame(){ state.playing=true; state.startTime=performance.now(); state.scared45=false; lockPointer();
+  if(MP.mode==='multi'){ let h=0; for(const ch of MP.me.name)h=(h*31+ch.charCodeAt(0))>>>0;
+    MP.spawnDx=((h%5)-2)*.35; MP.spawnDz=((h%7)-3)*.3;
+    mpUpdateLobby(); }
+  else { MP.spawnDx=0; MP.spawnDz=0; }
+  beep(440,.1); wakeBlink(); }
+/* waking up: camera held still beside your bed while the eyes blink and focus */
+function wakeBlink(){
+  const overlay=$('wakeBlur'), lids=$('eyelids'), top=$('lidTop'), bot=$('lidBot');
+  state.waking=true;
+  // risen beside your bed, gaze fixed while vision adjusts
+  player.pos.set(-31.1+(MP.spawnDx||0),1.6,-0.8+(MP.spawnDz||0)); state.yaw=-1.2; state.pitch=0.02; applyCam();
+  const setB=(b,br,op)=>{ if(!overlay)return;
+    overlay.style.backdropFilter='blur('+b.toFixed(1)+'px) brightness('+br.toFixed(2)+')';
+    overlay.style.background='rgba(0,0,0,'+op.toFixed(2)+')'; };
+  const setL=h=>{ if(!top||!bot)return; top.style.height=h+'vh'; bot.style.height=h+'vh'; };
+  if(overlay)overlay.style.display='block';
+  if(lids)lids.style.display='block';
+  setL(50); setB(14,.55,.35);
+  // two full blinks before vision is regained
+  [[350,0],[1100,50],[1350,0],[2000,50],[2250,0]].forEach(([t,h])=>setTimeout(()=>setL(h),t));
+  const t0=performance.now(), DUR=2600;
+  const tick=setInterval(()=>{
+    const k=Math.min((performance.now()-t0)/DUR,1);
+    const e=k*k*(3-2*k);
+    setB(Math.max(0,14*(1-e)),.55+.45*e,.35*(1-e));
+    if(k>=1){ clearInterval(tick);
+      if(overlay)overlay.style.display='none'; if(lids)lids.style.display='none';
+      state.waking=false; }
+  },16);
+}
 function fmt(ms){ const s=Math.floor(ms/1000); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
 
 /* ================= COLLISION (per room) ================= */
 const solidsLab=[
-  {x:1.4,z:-4,r:1.0},{x:3.4,z:-4,r:1.0},{x:4.3,z:-4.6,r:.6},{x:5.5,z:-3.2,r:1.1},
-  {x:-5.2,z:-.4,r:.95},{x:-5.2,z:1.4,r:.9},{x:-4.75,z:2.35,r:.25},
+  {x:1.2,z:-5.3,r:1.0},{x:3.2,z:-5.3,r:1.0},{x:4.55,z:-5.45,r:.6},{x:5.5,z:-3.2,r:1.1},
+  {x:-5.2,z:-.9,r:.95},{x:-5.2,z:.9,r:.9},{x:-4.75,z:2.35,r:.25},
   {x:-1.2,z:5.55,r:1.3},{x:1.2,z:5.55,r:1.3},
-  {x:-.4,z:-5.5,r:1.1},{x:-5.55,z:3.0,r:1.1},{x:4.93,z:4.9,r:.65},
-  {x:4.3,z:-1.4,r:.45},{x:-3.7,z:1.9,r:.35},{x:-1.3,z:2.1,r:.35},
-  {x:5.7,z:.8,r:.6},{x:-3.6,z:4.9,r:.4},
+  {x:-5.55,z:3.0,r:1.1},{x:4.93,z:4.9,r:.65},
+  {x:4.3,z:-1.4,r:.45},
+  {x:5.7,z:.8,r:.6},{x:-3.6,z:4.9,r:.4},{x:-1.5,z:-5.3,r:.4},{x:3.5,z:5.4,r:.4},{x:-5.3,z:-2.5,r:.4},
 ];
 const solidsSurg=[
   {x:-32,z:-2,r:1.15},{x:-28,z:-2,r:1.15},{x:-33.5,z:2.5,r:.35},{x:-26.5,z:2.8,r:.45},
@@ -1974,15 +2305,22 @@ function loop(){
       if(t<=10&&secs<state.lastTick){ state.lastTick=secs; beep(880,.06); }
       if(state.countdown<=0){ explode(); return; }
     } else $('timer').textContent=fmt(state.elapsed);
-    const frozen=state.scopeOpen?0:1;
+    // timed jumpscare: 45 seconds into the run, once per game
+    if(!state.scared45&&state.elapsed>=45000){ state.scared45=true; jumpscare('👻',1000); }
+    const frozen=(state.scopeOpen||state.drinking||state.waking)?0:1;
     const f=((state.keys.KeyW||state.keys.ArrowUp?1:0)-(state.keys.KeyS||state.keys.ArrowDown?1:0))*frozen;
     const s=((state.keys.KeyD||state.keys.ArrowRight?1:0)-(state.keys.KeyA||state.keys.ArrowLeft?1:0))*frozen;
     const sp=player.speed*dt;
     const sin=Math.sin(state.yaw),cos=Math.cos(state.yaw);
     player.pos.x+=( -sin*f + cos*s )*sp;
     player.pos.z+=( -cos*f - sin*s )*sp;
-    collide(player.pos);
+    if(!state.waking)collide(player.pos);
     applyCam();
+    if(performance.now()<(state.shakeUntil||0)){
+      camera.position.x+=(Math.random()-.5)*.09;
+      camera.position.y+=(Math.random()-.5)*.09;
+      camera.rotation.z+=(Math.random()-.5)*.06;
+    }
     flash.position.copy(camera.position);
     const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
     flash.target.position.copy(camera.position).addScaledVector(dir,3);
@@ -1991,7 +2329,7 @@ function loop(){
       promptEl.innerHTML='<b>'+T('promptKey')+'</b> '+T('carryHold','T'+(state.carried+1));
       promptEl.style.display='block'; }
     if(state.doorOpen){ doorAnim=Math.min(doorAnim+dt*1.4,1); doorGroup.rotation.y=-doorAnim*1.9; }
-    if(state.fridgeOpen && !state.cured){ const t=performance.now()*.003;
+    if(state.fridgeOpen && !state.cured && !state.drinking){ const t=performance.now()*.003;
       vials.forEach((v,i)=>{ v.group.position.y=v.baseY+Math.sin(t+i*1.7)*.02; }); }
     // carried tube rides in front of the camera until put back / used
     if(state.carried!=null&&!state.scopeBusy){
@@ -2000,16 +2338,17 @@ function loop(){
         const hw=camera.position.clone().addScaledVector(dir,.55); hw.y-=.2;
         t.group.position.lerp(tubeTable.worldToLocal(hw.clone()),1-Math.pow(.000005,dt)); } }
     $('carryBack').style.display=(state.carried!=null&&!state.scopeBusy)?'block':'none';
+    try{ mpTick(); }catch(e){}
     if(state.hasCard===false && cardGroup.visible){ cardGroup.rotation.y=performance.now()*.002; }
     // bomb-bench FX: stirring swirl + shaking jitter + burner flame + fizz
-    if(stirT>0){ stirT-=dt; stirRod.rotation.y+=12*dt; beakerLiq.rotation.y+=8*dt; }
+    if(stirT>0){ stirT-=dt; beakerLiq.rotation.y+=8*dt; }
     if(burnT>0){ burnT-=dt;
       flameM.scale.setScalar(1+Math.sin(performance.now()*.06)*.18);
       flameLight.intensity=2.5+Math.sin(performance.now()*.05)*1.5;
       beakerLiq.material.emissiveIntensity=.4+Math.abs(Math.sin(performance.now()*.02))*.4;
       bubbles.forEach((bb,bi)=>{ bb.visible=true; bb.position.y+=dt*(.22+(bi%3)*.1);
         if(bb.position.y>1.02){ bb.position.y=.85;
-          bb.position.x=-.35+(Math.random()-.5)*.08; bb.position.z=.55+(Math.random()-.5)*.08; } });
+          bb.position.x=-.15+(Math.random()-.5)*.08; bb.position.z=.9+(Math.random()-.5)*.08; } });
       if(burnT<=0){ flameM.visible=false; flameLight.intensity=0; beakerLiq.material.emissiveIntensity=.25;
         bubbles.forEach(bb=>bb.visible=false); } }
   }
@@ -2019,17 +2358,37 @@ function loop(){
     tw.obj.position.lerpVectors(tw.from,tw.to,e);
     tw.obj.position.y+=Math.sin(k*Math.PI)*.12;
     if(k>=1){ tweens.splice(i,1); if(tw.done)tw.done(); } }
-  ceilLight.intensity=22+Math.sin(performance.now()*.004)*.6;
-  if(typeof alarmLight!=='undefined'){
-    alarmLight.color.setHex(state.doorOpen?0x2bff88:0xff3b5c);
-    alarmLight.intensity=(state.doorOpen?3:1.5)+Math.sin(performance.now()*.006)*1.2;
-  }
+  // red siren beacon while the 60-second countdown runs
+  const sirenOn=state.countdown!=null&&!state.won&&!state.dead;
+  if(sirenOn){
+    const strobe=(performance.now()*.004)%2<1;
+    sirenLight.intensity=strobe?14:0;
+    alarmDot.intensity=strobe?6:1.2;
+  } else { sirenLight.intensity=0; alarmDot.intensity=1.2; }
   renderer.render(scene,camera);
 }
 addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
 applyCam(); loop();
 
+/* ---- ADMIN cheat-sheet: press + release CTRL (alone) to reveal all codes ---- */
+let adminCtrlArmed=false;
+function showAdminCodes(){
+  const [av,bv]=VIRUS_EL[ME.virus];
+  const wardBreak=scrMarks.map(s=>PARTS[s.part].n.en+' x'+s.count).join(', ');
+  const tubes=tubeSlots.map((ph,i)=>'T'+(i+1)+'=pH'+ph).join('  ');
+  const t7=tubeSlots.indexOf(7)+1, t4=tubeSlots.indexOf(4)+1, t2=tubeSlots.indexOf(2)+1;
+  const txt=
+    'WARD DOOR: '+surgCode+'   ('+wardBreak+')\n\n'+
+    'YOU: '+ME.id+' — '+ME.h+'cm / '+ME.w+'kg\n'+
+    'VIRUS: '+ME.virus+' = V-'+virusCode(ME.virus)+'  ('+av+' + '+bv+')\n'+
+    'FRIDGE CODE: '+dotsCode(ME.virus)+'   ('+av+'='+DOTS[av]+' cells, '+bv+'='+DOTS[bv]+' cells)\n\n'+
+    'CARD LOCKER: ['+cardLocker+'] '+LOCKERS[cardLocker].who+'\n'+
+    'KEY COAT: ['+keyCoat+'] ('+COAT_SPOTS[keyCoat].x+', '+COAT_SPOTS[keyCoat].z+')\n\n'+
+    'TUBES: '+tubes+'\n'+
+    'BOMB: pour pH7 (T'+t7+') + pH4 (T'+t4+'), BURN pH2 (T'+t2+'), STIR, MIX ALL';
+  showNote('🛠 ADMIN — all codes (CTRL)',txt);
+}
 function explode(){
   if(state.won||state.dead) return; state.dead=true; state.playing=false; exitPointer();
   beep(110,.7,'sawtooth',.2); setTimeout(()=>beep(70,1.0,'sawtooth',.2),200);
@@ -2038,9 +2397,22 @@ function explode(){
 }
 function winGame(){
   state.won=true; state.countdown=null; exitPointer();
+  // leaderboard: current run + persisted top 5 (localStorage)
+  try{
+    const KEY='subject07-leaderboard';
+    let board=[]; try{ board=JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ board=[]; }
+    if(!Array.isArray(board))board=[];
+    const cur={t:Math.round(state.elapsed),id:Date.now()+''+Math.random()};
+    board.push(cur); board.sort((a,b)=>a.t-b.t);
+    const top=board.slice(0,5);
+    try{ localStorage.setItem(KEY,JSON.stringify(top)); }catch(e){}
+    const medal=['🥇','🥈','🥉'];
+    $('boardList').innerHTML=top.map((e,i)=>'<li class="'+(e.id===cur.id?'me':'')+'"><span><span class="rank">'+
+      (medal[i]||((i+1)+'.'))+'</span>'+fmt(e.t)+'</span><span>'+(e.id===cur.id?'← YOU':'')+'</span></li>').join('');
+  }catch(e){ $('boardList').innerHTML='<li>Leaderboard unavailable.</li>'; }
   $('winStats').textContent=T('winStats',fmt(state.elapsed),ME.virus,dotsCode(ME.virus));
   $('epilogue').innerHTML=T('winEpi',ME.virus,ME.h,ME.w);
-  $('journalScore').textContent=T('winScore',ME.id,ME.h,ME.w,ME.virus,dotsCode(ME.virus),RIDDLES[cardLocker].who);
+  $('journalScore').textContent=T('winScore',ME.id,ME.h,ME.w,ME.virus,dotsCode(ME.virus),LOCKERS[cardLocker].who);
   setTimeout(()=>{ $('winScreen').classList.remove('hidden'); beep(523,.12); setTimeout(()=>beep(659,.12),140);
     setTimeout(()=>beep(784,.12),280); setTimeout(()=>beep(1046,.25),420); },1400);
   toast(T('winToast'),3000);
